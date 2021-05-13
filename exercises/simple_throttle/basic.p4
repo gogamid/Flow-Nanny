@@ -6,8 +6,10 @@
 
 const bit<16> TYPE_IPV4 = 0x800;
 const bit<8>  TYPE_TCP  = 6;
-const bit<48> window=10;
-const bit<32> maxBytes=1000; //?  bandwidth=maxBytes/window
+const bit<8>  TYPE_UDP  = 17;
+const bit<48> window=1000000; //in microseconds 1s=1 000 000 microsec
+const bit<32> maxBytes=100; //
+const bit<32> maxFlows=10; //number of flows supported for now
 
 
 /*************************************************************************
@@ -58,6 +60,12 @@ header tcp_t{
     bit<16> checksum;
     bit<16> urgentPtr;
 }
+header udp_t {
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<16> length_;
+    bit<16> checksum;
+}
 
 struct metadata {
     /* empty */
@@ -67,6 +75,7 @@ struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
     tcp_t        tcp;
+    udp_t        udp;
 }
 
 /*************************************************************************
@@ -94,12 +103,17 @@ parser MyParser(packet_in packet,
         packet.extract(hdr.ipv4);
         transition select(hdr.ipv4.protocol){
             TYPE_TCP: tcp;
+            TYPE_UDP: udp;
             default: accept;
         }
     }
 
     state tcp {
        packet.extract(hdr.tcp);
+       transition accept;
+    }
+    state udp {
+       packet.extract(hdr.udp);
        transition accept;
     }
 }
@@ -109,7 +123,24 @@ parser MyParser(packet_in packet,
 *************************************************************************/
 
 control MyVerifyChecksum(inout headers hdr, inout metadata meta) {   
-    apply {  }
+    apply { 
+         verify_checksum(
+	    hdr.ipv4.isValid(),
+            { hdr.ipv4.version,
+	      hdr.ipv4.ihl,
+              hdr.ipv4.diffserv,
+              hdr.ipv4.totalLen,
+              hdr.ipv4.identification,
+              hdr.ipv4.flags,
+              hdr.ipv4.fragOffset,
+              hdr.ipv4.ttl,
+              hdr.ipv4.protocol,
+              hdr.ipv4.srcAddr,
+              hdr.ipv4.dstAddr },
+            hdr.ipv4.hdrChecksum,
+            HashAlgorithm.csum16); 
+
+    }
 }
 
 
@@ -126,15 +157,25 @@ control MyIngress(inout headers hdr,
     bit<32> flowCnt;
     bit<32> _byteCnt;
     bit<32> DROP_RATE;
-    register<bit<32>>(10) flowCounter; //counts packets per flow
-    register<bit<48>>(10) startTime; //start time of flows with index of flowId
-    register<bit<32>>(10) bytesReceived; //counts bytes per flow
+    bit<48> _startTime;
+    register<bit<32>>(maxFlows) flowCounter; //counts packets per flow
+    register<bit<48>>(maxFlows) startTime; //start time of flows with index of flowId
+    register<bit<32>>(maxFlows) bytesReceived; //counts bytes per flow
+    register<bit<32>>(maxFlows) dropRates; //saves droprates of each flow
+
+    //debug
+   counter(1,CounterType.packets) packets_dropped; //counts packets dropped
+
+    
 
    action drop() {
         mark_to_drop(standard_metadata);
+
+        //debug
+        packets_dropped.count(0);
     }
-    action get_flowId(ip4Addr_t ipAddr1, ip4Addr_t ipAddr2, bit<16> port1, bit<16> port2,  bit<8>  protocol ){
-        hash(flowId, HashAlgorithm.crc32, 32w0, {ipAddr1,ipAddr2,port1,port2, protocol}, 32w10);
+    action get_flowId(){
+        hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort, hdr.ipv4.protocol}, maxFlows);
      }
 
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
@@ -158,10 +199,9 @@ control MyIngress(inout headers hdr,
    
     apply {
         pkt_forward.apply();
-
-        
+     
         //flowid from 5 Tuple
-        get_flowId(hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort, hdr.ipv4.protocol);
+        get_flowId();
        
        //is it first packet?
         flowCounter.read(flowCnt, flowId);
@@ -171,22 +211,19 @@ control MyIngress(inout headers hdr,
         } 
 
         //increment flow counter
-        flowCnt=flowCnt+1;
-        flowCounter.write(flowId,flowCnt);
-    
-
-
+        flowCounter.write(flowId,flowCnt+1);
 
         //is a window reached?
-        bit<48> _startTime;
         startTime.read(_startTime, flowId);
         if(standard_metadata.ingress_global_timestamp - _startTime>=window) {
+
             //drop rate
-            bit<32> DROP_RATE=(_byteCnt*100)/maxBytes;
-            //reset incoming byte counter
             bytesReceived.read(_byteCnt,flowId);
-            _byteCnt=0;
-            bytesReceived.write(flowId,_byteCnt);
+            DROP_RATE=20; //
+            dropRates.write(flowId, DROP_RATE); 
+
+            //reset incoming byte counter
+            bytesReceived.write(flowId,0);
 
             //set start time for flow
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
@@ -194,15 +231,21 @@ control MyIngress(inout headers hdr,
 
         //increase bytes received
         bytesReceived.read(_byteCnt,flowId);
-        _byteCnt= _byteCnt+standard_metadata.packet_length;
-        bytesReceived.write(flowId,_byteCnt);
+        bytesReceived.write(flowId,_byteCnt+standard_metadata.packet_length);
 
-        //drop decision with probability
-         bit<32> probability;
-         random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
-        if (probability <= DROP_RATE) {
-             drop();
-        }
+        //apply probabilistic drop to packets that exceed maxBytes in window
+         bytesReceived.read(_byteCnt,flowId);
+         if(_byteCnt > maxBytes) {
+
+            //drop decision with probability
+            bit<32> probability;
+            random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
+            dropRates.read(DROP_RATE, flowId);
+            if (probability <= DROP_RATE) {
+                drop();
+            }
+
+         }  
     }
 }
 
@@ -222,7 +265,7 @@ control MyEgress(inout headers hdr,
 
 control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
      apply {
-	update_checksum(
+         update_checksum(
 	    hdr.ipv4.isValid(),
             { hdr.ipv4.version,
 	      hdr.ipv4.ihl,
@@ -249,6 +292,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
         packet.emit(hdr.tcp);
+        packet.emit(hdr.udp);
     }
 }
 
