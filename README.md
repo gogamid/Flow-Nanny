@@ -31,6 +31,9 @@ you get started with P4 programming, organized into several modules:
 * [Firewall](./exercises/firewall)
 * [Link Monitoring](./exercises/link_monitor)
 
+6. My Project
+*[Simple_throttle](./exercises/simple_throttle)
+
 ## Presentation 
 
 The slides are available [online](http://bit.ly/p4d2-2018-spring) and
