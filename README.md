@@ -32,7 +32,7 @@ you get started with P4 programming, organized into several modules:
 * [Link Monitoring](./exercises/link_monitor)
 
 6. My Project
-* [Simple_throttle](./exercises/simple_throttle)
+* [Simple Throttle](./exercises/simple_throttle)
 
 ## Presentation 
 
