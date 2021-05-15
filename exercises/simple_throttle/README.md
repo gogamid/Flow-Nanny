@@ -2,6 +2,11 @@
 
 simple_throttle is a Verca project, that implements bandwidth throttle as a Intrusion Reaction to DDOS Attack using data plane programming. 
 
+## Topology
+
+We will use the following topology for this project. 
+![pod-topo](./pod-topo/simpleTopo.png)
+
 ## Usage
 1. In your shell, run:
    ```bash
