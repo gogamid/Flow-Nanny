@@ -154,29 +154,26 @@ control MyIngress(inout headers hdr,
 
    
     bit<32> flowId;
-    bit<32> flowCnt;
+    bit<1> _isSeen;
     bit<32> _byteCnt;
     bit<32> DROP_RATE;
     bit<48> _startTime;
-    register<bit<32>>(maxFlows) flowCounter; //counts packets per flow
     register<bit<48>>(maxFlows) startTime; //start time of flows with index of flowId
     register<bit<32>>(maxFlows) bytesReceived; //counts bytes per flow
-    register<bit<32>>(maxFlows) dropRates; //saves droprates of each flow
-
-    //debug TODO flow level with registers
-   counter(1,CounterType.packets) packets_dropped; //counts packets dropped 
-
-    
+    register<bit<32>>(maxFlows) dropRates; //drop rates are applied in runtime
+    register<bit<1>>(maxFlows) isSeen; //0 no, 1 yes
+    register<bit<32>>(maxFlows) packets_dropped;
 
    action drop() {
         mark_to_drop(standard_metadata);
 
-        //debug
-        packets_dropped.count(0);
+        //note packets dropped per flow
+        bit<32> dropped;
+        packets_dropped.read(dropped, flowId);
+        packets_dropped.write(flowId, dropped+1);
     }
-    action get_flowId(){
-        //TODO tcp or udp?
-        hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort, hdr.ipv4.protocol}, maxFlows);
+    action get_flowId( bit<16> srcPort, bit<16> dstPort){
+        hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, srcPort, dstPort, hdr.ipv4.protocol}, maxFlows);
      }
 
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
@@ -184,6 +181,9 @@ control MyIngress(inout headers hdr,
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+    }
+    action set_dropRate(bit<32> dRate){
+        dropRates.write(flowId, dRate);
     }
    
      
@@ -195,33 +195,39 @@ control MyIngress(inout headers hdr,
             hdr.ipv4.dstAddr: exact;
         }
     }
+
+    table  dropRate{
+        actions = {
+            set_dropRate;
+        }
+        key = {
+            hdr.ipv4.dstAddr: exact;
+            //match tcp or udp port
+        }
+    }
     
   
    
     apply {
         pkt_forward.apply();
-     
+    
         //flowid from 5 Tuple
-        get_flowId();
+        if(hdr.tcp.isValid())
+            get_flowId(hdr.tcp.srcPort, hdr.tcp.dstPort);
+        if(hdr.udp.isValid())  
+            get_flowId(hdr.udp.srcPort, hdr.udp.dstPort);
+        
+        dropRate.apply();
        
-       //is it first packet?
-        flowCounter.read(flowCnt, flowId);
-        if(flowCnt==0) {
-            //set start time for flow
+       //is it first packet, then note time of ingress
+        isSeen.read(_isSeen, flowId);
+        if(_isSeen==0) 
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-        } 
-
-        //increment flow counter
-        flowCounter.write(flowId,flowCnt+1);
+        isSeen.write(flowId,1);
 
         //is a window reached?
         startTime.read(_startTime, flowId);
         if(standard_metadata.ingress_global_timestamp - _startTime>=window) {
-
-            //drop rate
-            bytesReceived.read(_byteCnt,flowId);
-            DROP_RATE=20; //TODO should be const
-            dropRates.write(flowId, DROP_RATE); 
 
             //reset incoming byte counter
             bytesReceived.write(flowId,0);
