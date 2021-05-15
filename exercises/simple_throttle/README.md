@@ -4,7 +4,7 @@ simple_throttle is a Verca project, that implements bandwidth throttle as a Intr
 
 ## Topology
 
-We will use the following topology for this project. \ \
+We will use the following topology for this project. \ 
 ![pod-topo](./pod-topo/simpleTopo.png)
 
 ## Usage
