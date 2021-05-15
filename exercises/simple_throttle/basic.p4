@@ -163,8 +163,8 @@ control MyIngress(inout headers hdr,
     register<bit<32>>(maxFlows) bytesReceived; //counts bytes per flow
     register<bit<32>>(maxFlows) dropRates; //saves droprates of each flow
 
-    //debug
-   counter(1,CounterType.packets) packets_dropped; //counts packets dropped
+    //debug TODO flow level with registers
+   counter(1,CounterType.packets) packets_dropped; //counts packets dropped 
 
     
 
@@ -175,6 +175,7 @@ control MyIngress(inout headers hdr,
         packets_dropped.count(0);
     }
     action get_flowId(){
+        //TODO tcp or udp?
         hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, hdr.tcp.srcPort, hdr.tcp.dstPort, hdr.ipv4.protocol}, maxFlows);
      }
 
@@ -219,7 +220,7 @@ control MyIngress(inout headers hdr,
 
             //drop rate
             bytesReceived.read(_byteCnt,flowId);
-            DROP_RATE=20; //
+            DROP_RATE=20; //TODO should be const
             dropRates.write(flowId, DROP_RATE); 
 
             //reset incoming byte counter
