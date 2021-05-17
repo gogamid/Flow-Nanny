@@ -197,6 +197,8 @@ control MyIngress(inout headers hdr,
          bytesReceived.read(_byteCnt,flowId);
          if(_byteCnt > maxBytes) {
 
+            //TODO send message or packet to controller
+
             //drop decision with probability
             bit<32> probability;
             random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
