@@ -196,15 +196,15 @@ control MyIngress(inout headers hdr,
         }
     }
 
-    table  dropRate{
-        actions = {
-            set_dropRate;
-        }
-        key = {
-            hdr.ipv4.dstAddr: exact;
-            //match tcp or udp port
-        }
-    }
+    // table  dropRate{
+    //     actions = {
+    //         set_dropRate;
+    //     }
+    //     key = {
+    //         hdr.ipv4.dstAddr: exact;
+    //         //match tcp or udp port
+    //     }
+    // }
     
   
    
@@ -217,7 +217,7 @@ control MyIngress(inout headers hdr,
         if(hdr.udp.isValid())  
             get_flowId(hdr.udp.srcPort, hdr.udp.dstPort);
         
-        dropRate.apply();
+        // dropRate.apply();
        
        //is it first packet, then note time of ingress
         isSeen.read(_isSeen, flowId);

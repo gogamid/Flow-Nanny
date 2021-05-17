@@ -1,4 +1,4 @@
 table_add pkt_forward ipv4_forward 10.0.1.1 => 08:00:00:00:01:11 1
 table_add pkt_forward ipv4_forward 10.0.2.2 => 08:00:00:00:02:22 2
 table_add pkt_forward ipv4_forward 10.0.3.3 => 08:00:00:00:03:33 3
-table_add dropRate set_dropRate 10.0.2.2 => 20
+{% comment %} table_add dropRate set_dropRate 10.0.2.2 => 20 {% endcomment %}
