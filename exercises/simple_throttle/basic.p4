@@ -5,8 +5,6 @@
 /* CONSTANTS */
 
 const bit<16> TYPE_IPV4 = 0x800;
-const bit<8>  TYPE_TCP  = 6;
-const bit<8>  TYPE_UDP  = 17;
 const bit<48> window=1000000; //in microseconds 1s=1 000 000 microsec
 const bit<32> maxBytes=100; //
 const bit<32> maxFlows=10; //number of flows supported for now
@@ -41,42 +39,21 @@ header ipv4_t {
     ip4Addr_t dstAddr;
 }
 
-header tcp_t{
-    bit<16> srcPort;
-    bit<16> dstPort;
-    bit<32> seqNo;
-    bit<32> ackNo;
-    bit<4>  dataOffset;
-    bit<4>  res;
-    bit<1>  cwr;
-    bit<1>  ece;
-    bit<1>  urg;
-    bit<1>  ack;
-    bit<1>  psh;
-    bit<1>  rst;
-    bit<1>  syn;
-    bit<1>  fin;
-    bit<16> window;
-    bit<16> checksum;
-    bit<16> urgentPtr;
-}
-header udp_t {
-    bit<16> srcPort;
-    bit<16> dstPort;
-    bit<16> length_;
-    bit<16> checksum;
+struct l4_ports_t {
+    bit<16> src_port;
+    bit<16> dst_port;
 }
 
 struct metadata {
-    /* empty */
+    l4_ports_t l4_ports;
 }
 
 struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
-    tcp_t        tcp;
-    udp_t        udp;
 }
+
+
 
 /*************************************************************************
 *********************** P A R S E R  ***********************************
@@ -101,20 +78,8 @@ parser MyParser(packet_in packet,
 
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
-        transition select(hdr.ipv4.protocol){
-            TYPE_TCP: tcp;
-            TYPE_UDP: udp;
-            default: accept;
-        }
-    }
-
-    state tcp {
-       packet.extract(hdr.tcp);
-       transition accept;
-    }
-    state udp {
-       packet.extract(hdr.udp);
-       transition accept;
+        meta.l4_ports = packet.lookahead<l4_ports_t>();
+        transition accept;
     }
 }
 
@@ -172,8 +137,8 @@ control MyIngress(inout headers hdr,
         packets_dropped.read(dropped, flowId);
         packets_dropped.write(flowId, dropped+1);
     }
-    action get_flowId( bit<16> srcPort, bit<16> dstPort){
-        hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, srcPort, dstPort, hdr.ipv4.protocol}, maxFlows);
+    action get_flowId(){
+        hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
      }
 
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
@@ -196,30 +161,14 @@ control MyIngress(inout headers hdr,
         }
     }
 
-    // table  dropRate{
-    //     actions = {
-    //         set_dropRate;
-    //     }
-    //     key = {
-    //         hdr.ipv4.dstAddr: exact;
-    //         //match tcp or udp port
-    //     }
-    // }
-    
-  
-   
     apply {
         pkt_forward.apply();
     
         //flowid from 5 Tuple
-        if(hdr.tcp.isValid())
-            get_flowId(hdr.tcp.srcPort, hdr.tcp.dstPort);
-        if(hdr.udp.isValid())  
-            get_flowId(hdr.udp.srcPort, hdr.udp.dstPort);
-        
-        // dropRate.apply();
+        get_flowId();
+    
        
-       //is it first packet, then note time of ingress
+        //is it first packet, then note time of ingress
         isSeen.read(_isSeen, flowId);
         if(_isSeen==0) 
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
@@ -298,8 +247,6 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
-        packet.emit(hdr.tcp);
-        packet.emit(hdr.udp);
     }
 }
 
