@@ -3,6 +3,8 @@
 #include <v1model.p4>
 
 /* CONSTANTS */
+const bit<8>  TYPE_TCP  = 6;
+const bit<8>  TYPE_UDP  = 17;
 
 const bit<16> TYPE_IPV4 = 0x800;
 const bit<48> window=1000000; //in microseconds 1s=1 000 000 microsec
@@ -78,6 +80,13 @@ parser MyParser(packet_in packet,
 
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
+         transition select(hdr.ipv4.protocol){
+            TYPE_TCP: port_parse;
+            TYPE_UDP: port_parse;
+            default: accept;
+        }
+    }
+    state port_parse{
         meta.l4_ports = packet.lookahead<l4_ports_t>();
         transition accept;
     }
@@ -146,12 +155,7 @@ control MyIngress(inout headers hdr,
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
-    }
-    action set_dropRate(bit<32> dRate){
-        dropRates.write(flowId, dRate);
-    }
-   
-     
+    }  
     table pkt_forward {
         actions = {
             ipv4_forward;
