@@ -11,6 +11,7 @@ const bit<48> window=1000000; //in microseconds 1s=1 000 000 microsec
 const bit<32> maxBytes=100; //
 const bit<32> maxFlows=10; //number of flows supported for now
 
+const bit<32> MIRROR_SESSION_ID = 99;
 
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
@@ -24,6 +25,10 @@ header ethernet_t {
     macAddr_t dstAddr;
     macAddr_t srcAddr;
     bit<16>   etherType;
+}
+// cpu header prepended to packets going to the CPU
+header cpu_t {
+    bit<32> flowid;
 }
 
 header ipv4_t {
@@ -48,11 +53,13 @@ struct l4_ports_t {
 
 struct metadata {
     l4_ports_t l4_ports;
+    bit<32> flowid;
 }
 
 struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
+    cpu_t        cpu;
 }
 
 
@@ -148,6 +155,7 @@ control MyIngress(inout headers hdr,
     }
     action get_flowId(){
         hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
+        meta.flowid=flowId;
      }
 
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
@@ -170,7 +178,7 @@ control MyIngress(inout headers hdr,
     
         //flowid from 5 Tuple
         get_flowId();
-    
+
        
         //is it first packet, then note time of ingress
         isSeen.read(_isSeen, flowId);
@@ -198,6 +206,7 @@ control MyIngress(inout headers hdr,
          if(_byteCnt > maxBytes) {
 
             //TODO send message or packet to controller
+            clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
 
             //drop decision with probability
             bit<32> probability;
@@ -218,7 +227,17 @@ control MyIngress(inout headers hdr,
 control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
-    apply {  }
+    apply {
+        // if packet was cloned (instance_type == 1)
+        if (standard_metadata.instance_type == 1){
+            // populate cpu header
+            hdr.cpu.setValid();
+            hdr.cpu.flowid = meta.flowid;
+            // set ether_type to custom value defined for our app
+            // hdr.ethernet.etherType = L2_LEARN_ETHER_TYPE;
+            truncate((bit<32>)4);  // get only start of packet -  CPU Header (4 bytes)
+        }
+      }
 }
 
 /*************************************************************************

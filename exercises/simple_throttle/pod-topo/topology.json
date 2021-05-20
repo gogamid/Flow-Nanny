@@ -11,7 +11,9 @@
                            "arp -i eth0 -s 10.0.3.30 08:00:00:00:03:00"]}
     },
     "switches": {
-        "s1": { "cli_input": "pod-topo/s1-commands.txt" }
+        "s1": { "cli_input": "pod-topo/s1-commands.txt",
+            "cpu_port" : true
+         }
     },
     "links": [
         ["h1", "s1-p1"], ["s1-p2", "h2"],  ["s1-p3", "h3"]
