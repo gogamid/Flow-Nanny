@@ -11,7 +11,7 @@ const bit<48> window=1000000; //in microseconds 1s=1 000 000 microsec
 const bit<32> maxBytes=100; //
 const bit<32> maxFlows=10; //number of flows supported for now
 
-const bit<32> MIRROR_SESSION_ID = 99;
+const bit<32> MIRROR_SESSION_ID = 100;
 
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
@@ -156,6 +156,7 @@ control MyIngress(inout headers hdr,
     action get_flowId(){
         hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
         meta.flowid=flowId;
+        clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
      }
 
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
@@ -178,7 +179,7 @@ control MyIngress(inout headers hdr,
     
         //flowid from 5 Tuple
         get_flowId();
-        clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
+
        
         //is it first packet, then note time of ingress
         isSeen.read(_isSeen, flowId);
@@ -235,7 +236,7 @@ control MyEgress(inout headers hdr,
             hdr.cpu.flowid = meta.flowid;
             // set ether_type to custom value defined for our app
             // hdr.ethernet.etherType = L2_LEARN_ETHER_TYPE;
-            truncate((bit<32>)38);  // get only start of packet -  CPU Header (4 bytes)
+            truncate((bit<32>)4);  // get only start of packet -  CPU Header (4 bytes)
         }
       }
 }
@@ -272,7 +273,6 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
-        packet.emit(hdr.cpu);
     }
 }
 

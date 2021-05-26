@@ -3,7 +3,7 @@ from p4utils.utils.sswitch_API import SimpleSwitchAPI
 from scapy.all import Ether, sniff, Packet, BitField
 
 
-MIRROR_SESSION_ID = 99
+MIRROR_SESSION_ID = 100
 L2_LEARN_ETHER_TYPE = 0x4221
 
 
@@ -43,7 +43,6 @@ class LearningSwitchControllerApp(object):
         print("loop has started")
         cpu_port_intf = str(self.topo.get_cpu_port_intf(
             self.switchName).replace("eth0", "eth1"))
-        print(cpu_port_intf)
         sniff(iface=cpu_port_intf, prn=self.recv_msg_cpu)
 
 

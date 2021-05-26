@@ -11,7 +11,8 @@ const bit<48> window=1000000; //in microseconds 1s=1 000 000 microsec
 const bit<32> maxBytes=100; //
 const bit<32> maxFlows=10; //number of flows supported for now
 
-const bit<32> MIRROR_SESSION_ID = 99;
+const bit<16> L2_LEARN_ETHER_TYPE = 0x4221;
+const bit<32> MIRROR_SESSION_ID = 100;
 
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
@@ -21,16 +22,18 @@ typedef bit<9>  egressSpec_t;
 typedef bit<48> macAddr_t;
 typedef bit<32> ip4Addr_t;
 
+//14 bytes
 header ethernet_t {
     macAddr_t dstAddr;
     macAddr_t srcAddr;
     bit<16>   etherType;
 }
-// cpu header prepended to packets going to the CPU
+// cpu header prepended to packets going to the CPU   4 Byes
 header cpu_t {
     bit<32> flowid;
 }
 
+//20 Bytes
 header ipv4_t {
     bit<4>    version;
     bit<4>    ihl;
@@ -105,21 +108,21 @@ parser MyParser(packet_in packet,
 
 control MyVerifyChecksum(inout headers hdr, inout metadata meta) {   
     apply { 
-         verify_checksum(
-	    hdr.ipv4.isValid(),
-            { hdr.ipv4.version,
-	      hdr.ipv4.ihl,
-              hdr.ipv4.diffserv,
-              hdr.ipv4.totalLen,
-              hdr.ipv4.identification,
-              hdr.ipv4.flags,
-              hdr.ipv4.fragOffset,
-              hdr.ipv4.ttl,
-              hdr.ipv4.protocol,
-              hdr.ipv4.srcAddr,
-              hdr.ipv4.dstAddr },
-            hdr.ipv4.hdrChecksum,
-            HashAlgorithm.csum16); 
+        //  verify_checksum(
+	    // hdr.ipv4.isValid(),
+        //     { hdr.ipv4.version,
+	    //   hdr.ipv4.ihl,
+        //       hdr.ipv4.diffserv,
+        //       hdr.ipv4.totalLen,
+        //       hdr.ipv4.identification,
+        //       hdr.ipv4.flags,
+        //       hdr.ipv4.fragOffset,
+        //       hdr.ipv4.ttl,
+        //       hdr.ipv4.protocol,
+        //       hdr.ipv4.srcAddr,
+        //       hdr.ipv4.dstAddr },
+        //     hdr.ipv4.hdrChecksum,
+        //     HashAlgorithm.csum16); 
 
     }
 }
@@ -176,47 +179,46 @@ control MyIngress(inout headers hdr,
     apply {
         pkt_forward.apply();
     
-        //flowid from 5 Tuple
-        get_flowId();
-        clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
-       
-        //is it first packet, then note time of ingress
-        isSeen.read(_isSeen, flowId);
-        if(_isSeen==0) 
-            startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-        isSeen.write(flowId,1);
+        // //flowid from 5 Tuple
+        // get_flowId();
+        // // clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
+        // //is it first packet, then note time of ingress
+        // isSeen.read(_isSeen, flowId);
+        // if(_isSeen==0) 
+        //     startTime.write(flowId, standard_metadata.ingress_global_timestamp);
+        // isSeen.write(flowId,1);
 
-        //is a window reached?
-        startTime.read(_startTime, flowId);
-        if(standard_metadata.ingress_global_timestamp - _startTime>=window) {
+        // //is a window reached?
+        // startTime.read(_startTime, flowId);
+        // if(standard_metadata.ingress_global_timestamp - _startTime>=window) {
 
-            //reset incoming byte counter
-            bytesReceived.write(flowId,0);
+        //     //reset incoming byte counter
+        //     bytesReceived.write(flowId,0);
 
-            //set start time for flow
-            startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-        }
+        //     //set start time for flow
+        //     startTime.write(flowId, standard_metadata.ingress_global_timestamp);
+        // }
 
-        //increase bytes received
-        bytesReceived.read(_byteCnt,flowId);
-        bytesReceived.write(flowId,_byteCnt+standard_metadata.packet_length);
+        // //increase bytes received
+        // bytesReceived.read(_byteCnt,flowId);
+        // bytesReceived.write(flowId,_byteCnt+standard_metadata.packet_length);
 
-        //apply probabilistic drop to packets that exceed maxBytes in window
-         bytesReceived.read(_byteCnt,flowId);
-         if(_byteCnt > maxBytes) {
+        // //apply probabilistic drop to packets that exceed maxBytes in window
+        //  bytesReceived.read(_byteCnt,flowId);
+        //  if(_byteCnt > maxBytes) {
 
-            //TODO send message or packet to controller
-            // clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
+        //     //TODO send message or packet to controller
+    
 
-            //drop decision with probability
-            bit<32> probability;
-            random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
-            dropRates.read(DROP_RATE, flowId);
-            if (probability <= DROP_RATE) {
-                drop();
-            }
+        //     //drop decision with probability
+        //     bit<32> probability;
+        //     random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
+        //     dropRates.read(DROP_RATE, flowId);
+        //     if (probability <= DROP_RATE) {
+        //         drop();
+        //     }
 
-         }  
+        //  }  
     }
 }
 
@@ -228,15 +230,13 @@ control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
     apply {
-        // if packet was cloned (instance_type == 1)
-        if (standard_metadata.instance_type == 1){
-            // populate cpu header
-            hdr.cpu.setValid();
-            hdr.cpu.flowid = meta.flowid;
-            // set ether_type to custom value defined for our app
-            // hdr.ethernet.etherType = L2_LEARN_ETHER_TYPE;
-            truncate((bit<32>)38);  // get only start of packet -  CPU Header (4 bytes)
-        }
+        // // if packet was cloned (instance_type == 1)
+        // if (standard_metadata.instance_type == 1){
+        //     // populate cpu header
+        //     hdr.cpu.setValid();
+        //     hdr.cpu.flowid = meta.flowid;
+        //     truncate((bit<32>)4);  // get only start of packet CPU Header (4 bytes)
+        // }
       }
 }
 
@@ -246,21 +246,21 @@ control MyEgress(inout headers hdr,
 
 control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
      apply {
-         update_checksum(
-	    hdr.ipv4.isValid(),
-            { hdr.ipv4.version,
-	      hdr.ipv4.ihl,
-              hdr.ipv4.diffserv,
-              hdr.ipv4.totalLen,
-              hdr.ipv4.identification,
-              hdr.ipv4.flags,
-              hdr.ipv4.fragOffset,
-              hdr.ipv4.ttl,
-              hdr.ipv4.protocol,
-              hdr.ipv4.srcAddr,
-              hdr.ipv4.dstAddr },
-            hdr.ipv4.hdrChecksum,
-            HashAlgorithm.csum16);
+        //  update_checksum(
+	    // hdr.ipv4.isValid(),
+        //     { hdr.ipv4.version,
+	    //   hdr.ipv4.ihl,
+        //       hdr.ipv4.diffserv,
+        //       hdr.ipv4.totalLen,
+        //       hdr.ipv4.identification,
+        //       hdr.ipv4.flags,
+        //       hdr.ipv4.fragOffset,
+        //       hdr.ipv4.ttl,
+        //       hdr.ipv4.protocol,
+        //       hdr.ipv4.srcAddr,
+        //       hdr.ipv4.dstAddr },
+        //     hdr.ipv4.hdrChecksum,
+        //     HashAlgorithm.csum16);
     }
 }
 
@@ -270,9 +270,11 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
 
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
+        //packet.emit(hdr.cpu);
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
-        packet.emit(hdr.cpu);
+        
+
     }
 }
 
