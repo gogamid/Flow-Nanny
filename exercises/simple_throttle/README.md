@@ -14,7 +14,7 @@ We will use the following topology for this project: <br/>
    sudo p4run
    ```
    This will:
-   * compile `simple_throttle.p4`, and
+   * compile `basic.p4`, and
    * start the pod-topo in Mininet and configure a switch with
    the appropriate P4 program + table entries, and
    * configure all hosts with the commands listed in
@@ -25,6 +25,9 @@ We will use the following topology for this project: <br/>
    ```bash
    mininet> iperf h1 h2
    ```
-
-3. Type `exit` to leave the Mininet command line.
+3. In other terminal run controller app to set drop rates dynamically
+   ```bash
+   sudo python controller1.py s1
+   ```
+4. Type `exit` to leave the Mininet command line.
  
