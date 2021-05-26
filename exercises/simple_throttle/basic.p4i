@@ -958,6 +958,8 @@ control MyIngress(inout headers hdr,
 
         //flowid from 5 Tuple
         get_flowId();
+
+        //to test clone is placed here
         clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
 
         //is it first packet, then note time of ingress
@@ -1013,9 +1015,7 @@ control MyEgress(inout headers hdr,
             // populate cpu header
             hdr.cpu.setValid();
             hdr.cpu.flowid = meta.flowid;
-            // set ether_type to custom value defined for our app
-            // hdr.ethernet.etherType = L2_LEARN_ETHER_TYPE;
-            truncate((bit<32>)38); // get only start of packet -  CPU Header (4 bytes)
+            truncate((bit<32>)38); // Ether 14 Bytes, IP 20 Bytes  CPU Header (4 bytes)
         }
       }
 }

@@ -3,10 +3,9 @@ from p4utils.utils.sswitch_API import SimpleSwitchAPI
 from scapy.all import Ether, sniff, Packet, BitField
 
 MIRROR_SESSION_ID = 99
-
 class CpuHeader(Packet):
     name = 'CpuPacket'
-    fields_desc = [BitField('fid', 0, 32)]
+    fields_desc = [BitField("fid", 0, 32)]
 
 def msg_receive(pkt):
     packet = Packet(str(pkt)) 
