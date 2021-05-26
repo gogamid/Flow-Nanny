@@ -178,10 +178,7 @@ control MyIngress(inout headers hdr,
     
         //flowid from 5 Tuple
         get_flowId();
-
-        //to test clone is placed here
-        clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
-       
+           
         //is it first packet, then note time of ingress
         isSeen.read(_isSeen, flowId);
         if(_isSeen==0) 
@@ -207,8 +204,8 @@ control MyIngress(inout headers hdr,
          bytesReceived.read(_byteCnt,flowId);
          if(_byteCnt > maxBytes) {
 
-            //TODO send message or packet to controller
-            // clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
+            //clone a packet to egress
+            clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
 
             //drop decision with probability
             bit<32> probability;
