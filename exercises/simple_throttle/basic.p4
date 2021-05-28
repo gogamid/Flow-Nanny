@@ -8,7 +8,7 @@ const bit<8>  TYPE_UDP  = 17;
 
 const bit<16> TYPE_IPV4 = 0x800;
 const bit<48> window=1000000; //in microseconds 1s=1 000 000 microsec
-const bit<32> maxBytes=100; //
+const bit<32> contracted=100; //
 const bit<32> maxFlows=10; //number of flows supported for now
 
 const bit<32> MIRROR_SESSION_ID = 99;
@@ -29,6 +29,8 @@ header ethernet_t {
 // cpu header prepended to packets going to the CPU
 header cpu_t {
     bit<32> flowid;
+    bit<32> contracted;
+    bit<32> incomming;
 }
 
 header ipv4_t {
@@ -54,6 +56,8 @@ struct l4_ports_t {
 struct metadata {
     l4_ports_t l4_ports;
     bit<32> flowid;
+    bit<32> contracted;
+    bit<32> incomming;
 }
 
 struct headers {
@@ -136,7 +140,7 @@ control MyIngress(inout headers hdr,
    
     bit<32> flowId;
     bit<1> _isSeen;
-    bit<32> _byteCnt;
+    bit<32> incomming;
     bit<32> DROP_RATE;
     bit<48> _startTime;
     register<bit<48>>(maxFlows) startTime; //start time of flows with index of flowId
@@ -197,12 +201,13 @@ control MyIngress(inout headers hdr,
         }
 
         //increase bytes received
-        bytesReceived.read(_byteCnt,flowId);
-        bytesReceived.write(flowId,_byteCnt+standard_metadata.packet_length);
+        bytesReceived.read(incomming,flowId);
+        bytesReceived.write(flowId,incomming+standard_metadata.packet_length);
+        meta.incomming=incomming;
 
-        //apply probabilistic drop to packets that exceed maxBytes in window
-         bytesReceived.read(_byteCnt,flowId);
-         if(_byteCnt > maxBytes) {
+        //apply probabilistic drop to packets that exceed contracted in window
+         bytesReceived.read(incomming,flowId);
+         if(incomming > contracted) {
 
             //clone a packet to egress
             clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
@@ -232,7 +237,9 @@ control MyEgress(inout headers hdr,
             // populate cpu header
             hdr.cpu.setValid();
             hdr.cpu.flowid = meta.flowid;
-            truncate((bit<32>)38);  // Ether 14 Bytes, IP 20 Bytes  CPU Header (4 bytes)
+            hdr.cpu.incomming=meta.incomming;
+            hdr.cpu.contracted=contracted;
+            truncate((bit<32>)46);  // Ether 14 Bytes, IP 20 Bytes  CPU Header (12 bytes)
         }
       }
 }

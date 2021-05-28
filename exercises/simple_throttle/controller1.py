@@ -15,20 +15,35 @@ controller.mirroring_add(MIRROR_SESSION_ID, cpu_port)
 
 class CpuHeader(Packet):
     name = 'CpuPacket'
-    fields_desc = [BitField("fid", 0, 32)]
+    fields_desc = [BitField("fid", 0, 32),BitField("contracted", 0, 32),BitField("incomming", 0, 32)]
 
 def msg_receive(pkt):
     packet = Packet(str(pkt)) 
     ethernet_frame = ethernet_frame = Ether(str(packet))   
     ip_packet = ethernet_frame.payload    
     cpu_header = CpuHeader(str(ip_packet.payload)) 
+
+    fid=cpu_header.fid
+    contracted=cpu_header.contracted
+    incomming=cpu_header.incomming
     
-    print("flow id is "+ str(cpu_header.fid))
-    controller.register_write("MyIngress.dropRates", str(cpu_header.fid), 20)
+    print("flow id is "+ str(fid))
+    print("contracted  is "+ str(contracted))
+    print("incomming is "+ str(incomming))
+    if incomming==0:
+        incomming=1
+    div=(contracted*100)/incomming
+    if div<0:
+        div=0
+    if div>100:
+        div=100
+    drop_rate=100-div
+    print("drop rate "+ str(drop_rate))
+    controller.register_write("MyIngress.dropRates", str(fid), 20)
 
     for x in range(10):
-        print(controller.register_read("MyIngress.dropRates", x))
-  
+        print(controller.register_read("MyIngress.dropRates", x)),
+    print("")
 
 if __name__ == "__main__":
     sniff(iface="s1-cpu-eth1", prn=msg_receive)
