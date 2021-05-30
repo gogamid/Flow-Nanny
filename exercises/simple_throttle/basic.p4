@@ -182,6 +182,12 @@ control MyIngress(inout headers hdr,
     
         //flowid from 5 Tuple
         get_flowId();
+        
+        //for testing
+        meta.incomming=150;
+        clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
+        
+
            
         //is it first packet, then note time of ingress
         isSeen.read(_isSeen, flowId);
@@ -210,7 +216,7 @@ control MyIngress(inout headers hdr,
          if(incomming > contracted) {
 
             //clone a packet to egress
-            clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
+            // clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
 
             //drop decision with probability
             bit<32> probability;

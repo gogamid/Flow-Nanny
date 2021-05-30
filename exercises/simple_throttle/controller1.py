@@ -32,12 +32,12 @@ def msg_receive(pkt):
     print("incomming is "+ str(incomming))
     if incomming==0:
         incomming=1
-    div=(contracted*100)/incomming
+    div=contracted/incomming
     if div<0:
         div=0
-    if div>100:
-        div=100
-    drop_rate=100-div
+    if div>1:
+        div=1
+    drop_rate=(1-div)*100
     print("drop rate "+ str(drop_rate))
     controller.register_write("MyIngress.dropRates", str(fid), 20)
 
