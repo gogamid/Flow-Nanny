@@ -184,8 +184,7 @@ control MyIngress(inout headers hdr,
         get_flowId();
         
         //for testing
-        meta.incomming=150;
-        clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
+        // clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
         
 
            
@@ -209,14 +208,15 @@ control MyIngress(inout headers hdr,
         //increase bytes received
         bytesReceived.read(incomming,flowId);
         bytesReceived.write(flowId,incomming+standard_metadata.packet_length);
+       
+        //apply probabilistic drop to packets that exceed contracted in window
+        bytesReceived.read(incomming,flowId);
         meta.incomming=incomming;
 
-        //apply probabilistic drop to packets that exceed contracted in window
-         bytesReceived.read(incomming,flowId);
          if(incomming > contracted) {
 
             //clone a packet to egress
-            // clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
+            clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
 
             //drop decision with probability
             bit<32> probability;
