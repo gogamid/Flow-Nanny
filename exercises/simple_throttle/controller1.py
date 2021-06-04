@@ -39,9 +39,7 @@ def msg_receive(pkt):
     if div>1:
         div=1
     drop_rate=(1-div)*100
-    if drop_rate>60:
-        drop_rate=60
-
+    
     print("drop rate "+ str(drop_rate))
     controller.register_write("MyIngress.dropRates", str(fid), drop_rate)
 
