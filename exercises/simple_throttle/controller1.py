@@ -37,10 +37,10 @@ def msg_receive(pkt):
     print("flow id is "+ str(fid))
     print("contracted  is "+ str(contracted))
     print("incomming is "+ str(incomming))
-    print("source IP is"+ str(ipaddress.IPv4Address(srcIP)))
-    print("destination IP is"+ str(ipaddress.IPv4Address(dstIP)))
-    print("source Port is"+ str(srcP))
-    print("destination Port is"+ str(dstP))
+    print("source IP is "+ str(ipaddress.IPv4Address(srcIP)))
+    print("destination IP is "+ str(ipaddress.IPv4Address(dstIP)))
+    print("source Port is "+ str(srcP))
+    print("destination Port is "+ str(dstP))
     
 
     if incomming==0:
@@ -52,6 +52,19 @@ def msg_receive(pkt):
     if div>1:
         div=1
     drop_rate=(1-div)*100
+
+    """
+    100%       35
+    drop_rate  x
+
+    x=(drop_rate*35)/100
+
+    """
+    x=(drop_rate*30)/100
+    
+    print("drop rate has been set to " + str(x)+ " which is "+str(drop_rate)+" percentage")
+    drop_rate=x
+        
     
     print("drop rate "+ str(drop_rate))
     controller.register_write("MyIngress.dropRates", str(fid), drop_rate)
@@ -62,9 +75,10 @@ def msg_receive(pkt):
 
 def resetDropRate(index):
     if index =="all":
-        for item in [0-9]:
+        for item in range(10):
             controller.register_write("MyIngress.dropRates", str(item), 0)
-            print("all flow drop rates have been set to 0")
+            print("flow "+str(item)+" drop rate has been set to 0")
+        print("all flow drop rates have been set to 0")
     else:
         controller.register_write("MyIngress.dropRates", str(index), 0)
         print("flow "+str(index)+" drop rate has been set to 0")
