@@ -31,6 +31,11 @@ header cpu_t {
     bit<32> flowid;
     bit<32> contracted;
     bit<32> incomming;
+    bit<32> srcIP;
+    bit<32> dstIP;
+    bit<16> srcP;
+    bit<16> dstP;
+
 }
 
 header ipv4_t {
@@ -58,6 +63,8 @@ struct metadata {
     bit<32> flowid;
     bit<32> contracted;
     bit<32> incomming;
+    bit<32> srcIP;
+    bit<32> dstIP;
 }
 
 struct headers {
@@ -160,6 +167,8 @@ control MyIngress(inout headers hdr,
     action get_flowId(){
         hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
         meta.flowid=flowId;
+        meta.srcIP=hdr.ipv4.srcAddr;
+        meta.dstIP=hdr.ipv4.dstAddr;
      }
 
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
@@ -245,7 +254,11 @@ control MyEgress(inout headers hdr,
             hdr.cpu.flowid = meta.flowid;
             hdr.cpu.incomming=meta.incomming;
             hdr.cpu.contracted=contracted;
-            truncate((bit<32>)46);  // Ether 14 Bytes, IP 20 Bytes  CPU Header (12 bytes)
+            hdr.cpu.srcIP=meta.srcIP;
+            hdr.cpu.dstIP=meta.dstIP;
+            hdr.cpu.srcP=meta.l4_ports.src_port;
+            hdr.cpu.dstP=meta.l4_ports.dst_port;
+            truncate((bit<32>)58);  // Ether 14 Bytes, IP 20 Bytes  CPU Header (12 bytes)
         }
       }
 }
