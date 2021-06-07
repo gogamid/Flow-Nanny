@@ -60,8 +60,25 @@ def msg_receive(pkt):
         print(controller.register_read("MyIngress.dropRates", x)),
     print("\n\n")
 
+def resetDropRate(index):
+    if index =="all":
+        for item in [0-9]:
+            controller.register_write("MyIngress.dropRates", str(item), 0)
+            print("all flow drop rates have been set to 0")
+    else:
+        controller.register_write("MyIngress.dropRates", str(index), 0)
+        print("flow "+str(index)+" drop rate has been set to 0")
+
+
 if __name__ == "__main__":
-    sniff(iface="s1-cpu-eth1", prn=msg_receive)
+    action=sys.argv[1]
+    if action == "dynamicDR":
+        sniff(iface="s1-cpu-eth1", prn=msg_receive)
+    elif action == "resetDR":
+        index = sys.argv[2]
+        resetDropRate(index)
+        
+    
     
 
      
