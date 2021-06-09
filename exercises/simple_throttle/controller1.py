@@ -54,16 +54,20 @@ def msg_receive(pkt):
     drop_rate=(1-div)*100
 
     """
-    100%       35
+    ******DROP RATE IS NO MORE THAN 30 FOR TESTING PURPOSES********
+    100%       30
     drop_rate  x
 
     x=(drop_rate*35)/100
 
+    example 100 
+
+
     """
-    x=(drop_rate*30)/100
+    # x=(drop_rate*30)/100
     
-    print("drop rate has been set to " + str(x)+ " which is "+str(drop_rate)+" percentage")
-    drop_rate=x
+    # print("drop rate has been set to " + str(x)+ " which is "+str(drop_rate)+" percentage")
+    # drop_rate=x
         
     
     print("drop rate "+ str(drop_rate))

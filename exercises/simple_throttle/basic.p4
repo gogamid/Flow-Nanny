@@ -5,13 +5,13 @@
 /* CONSTANTS */
 const bit<8>  TYPE_TCP  = 6;
 const bit<8>  TYPE_UDP  = 17;
-
 const bit<16> TYPE_IPV4 = 0x800;
-const bit<48> window=1000000; //in microseconds 1s=1 000 000 microsec
-const bit<32> contracted=100; //
+
+const bit<48> window=1000000; //frequency that we reset the bytes received, in microseconds(1s)
+const bit<32> contracted=100; //limit of bytes allowed during the time "window"
 const bit<32> maxFlows=10; //number of flows supported for now
 
-const bit<32> MIRROR_SESSION_ID = 99;
+const bit<32> MIRROR_SESSION_ID = 99; //for cpu header
 
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
@@ -26,7 +26,7 @@ header ethernet_t {
     macAddr_t srcAddr;
     bit<16>   etherType;
 }
-// cpu header prepended to packets going to the CPU
+// cpu header  to be sent to the controller (24 Bytes)
 header cpu_t {
     bit<32> flowid;
     bit<32> contracted;
@@ -53,6 +53,7 @@ header ipv4_t {
     ip4Addr_t dstAddr;
 }
 
+//only ports needed for the hash so no differentiation between TCP und UDP
 struct l4_ports_t {
     bit<16> src_port;
     bit<16> dst_port;
@@ -145,25 +146,33 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
 
    
-    bit<32> flowId;
-    bit<1> _isSeen;
-    bit<32> incomming;
-    bit<32> DROP_RATE;
-    bit<48> _startTime;
-    register<bit<48>>(maxFlows) startTime; //start time of flows with index of flowId
-    register<bit<32>>(maxFlows) bytesReceived; //counts bytes per flow
-    register<bit<32>>(maxFlows) dropRates; //drop rates are applied in runtime
-    register<bit<1>>(maxFlows) isSeen; //0 no, 1 yes
-    register<bit<32>>(maxFlows) packets_dropped;
+    bit<32> flowId; //calculated in get_flowId() function and used as an index for registers
+    bit<1> _isSeen; //local help variable which is used with register "isSeen"
+    bit<32> incomming; //local help variable which is used with register "bytesReceived"
+    bit<32> DROP_RATE; //local help variable which is used with register "dropRates"
+    bit<48> _startTime; //local help variable which is used with register "startTime"
 
+    register<bit<48>>(maxFlows) startTime; //start time of flows with index of flowId
+    register<bit<32>>(maxFlows) bytesReceived; //number of bytes received per flow
+    register<bit<32>>(maxFlows) dropRates; //drop rates per flow level which are calculated in controller
+    register<bit<1>>(maxFlows) isSeen; //in order to identify first packet in the flow(0 first Packet, 1 not)
+    register<bit<32>>(maxFlows) packets_dropped; //counters for number of drops per flow level
+
+    /*
+    this function drops the packet and increases the counter for dropped packets per flow
+    */
    action drop() {
         mark_to_drop(standard_metadata);
 
-        //note packets dropped per flow
+        //calculate packets dropped per flow
         bit<32> dropped;
         packets_dropped.read(dropped, flowId);
         packets_dropped.write(flowId, dropped+1);
     }
+    /*
+    this function calculates hash value from 5 Tuple and assigns to local variable "flowid".
+    Additionally saves some information in meta
+    */
     action get_flowId(){
         hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
         meta.flowid=flowId;
@@ -171,6 +180,9 @@ control MyIngress(inout headers hdr,
         meta.dstIP=hdr.ipv4.dstAddr;
      }
 
+    /*
+    this function does simple forwarding when destination mac address and port is known
+    */
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
@@ -188,48 +200,50 @@ control MyIngress(inout headers hdr,
 
     apply {
         pkt_forward.apply();
-    
-        //flowid from 5 Tuple
-        get_flowId();
-        
-        //for testing
-        // clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
-        
 
-           
-        //is it first packet, then note time of ingress
+        get_flowId(); //calculate flow id from 5 tuple and save into flowid
+        
+        /*Is it a first packet, then note time of ingress. 
+        It is needed for the decision whether reset the bytes received counter */
         isSeen.read(_isSeen, flowId);
         if(_isSeen==0) 
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
         isSeen.write(flowId,1);
 
-        //is a window reached?
+        /*
+        is time provided in "window" elapsed? 
+        then : 
+            *reset incoming byte counter
+            *change the start time of the flow to current time
+        */
         startTime.read(_startTime, flowId);
         if(standard_metadata.ingress_global_timestamp - _startTime>=window) {
-
-            //reset incoming byte counter
             bytesReceived.write(flowId,0);
-
-            //set start time for flow
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
         }
 
-        //increase bytes received
+        //increase bytes received  by packet length
         bytesReceived.read(incomming,flowId);
         bytesReceived.write(flowId,incomming+standard_metadata.packet_length);
        
-        //apply probabilistic drop to packets that exceed contracted in window
+        //read the incomming bytes from register and save to meta in order to send to the controller
         bytesReceived.read(incomming,flowId);
         meta.incomming=incomming;
 
+        /*
+        if   bytes received per window exceed the contracted bytes limit 
+        then:
+            *clone meta to egress and egress will prepend cpu header to the packet 
+             with relevant information for calculation of dynamic drop rate
+            *probability is generated with the help of random
+            *read the drop rate calculated in controller and apply it
+        */
          if(incomming > contracted) {
-
-            //clone a packet to egress
             clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
 
-            //drop decision with probability
             bit<32> probability;
             random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
+
             dropRates.read(DROP_RATE, flowId);
             if (probability <= DROP_RATE) {
                 drop();
@@ -258,7 +272,7 @@ control MyEgress(inout headers hdr,
             hdr.cpu.dstIP=meta.dstIP;
             hdr.cpu.srcP=meta.l4_ports.src_port;
             hdr.cpu.dstP=meta.l4_ports.dst_port;
-            truncate((bit<32>)58);  // Ether 14 Bytes, IP 20 Bytes  CPU Header (12 bytes)
+            truncate((bit<32>)58);  // Ether 14 Bytes, IP 20 Bytes  CPU Header (24 bytes)
         }
       }
 }
