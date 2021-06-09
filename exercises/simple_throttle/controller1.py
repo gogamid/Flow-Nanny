@@ -47,13 +47,11 @@ def calculateDropRate(incomming, contracted):
     return (1-div)*100
 
 
-""" 
-this function receives the message from data plane.
-It parses all the headers and saves the elements of cpu header to local variables.
-With the help of those variables dynamic drop rates is calculated:
-    DROP RATE=(1-contracted/incomming)*100;
-"""
-
+ 
+# this function receives the message from data plane.
+# It parses all the headers and saves the elements of cpu header to local variables.
+# With the help of those variables dynamic drop rates is calculated:
+#     DROP RATE=(1-contracted/incomming)*100;
 
 def msg_receive(pkt):
     packet = Packet(str(pkt))
@@ -91,10 +89,9 @@ def msg_receive(pkt):
     print("\n\n")
 
 
-""" 
-this function is for setting drop rates of flows to 0
-it can set either all flows or just index out of [0,9]
-"""
+# this function is for setting drop rates of flows to 0
+# it can set either all flows or just index out of [0,9]
+
 def resetDropRate(index):
     if index == "all":
         for item in range(10):
