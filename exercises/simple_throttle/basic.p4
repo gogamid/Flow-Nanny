@@ -7,10 +7,10 @@ const bit<8>  TYPE_TCP  = 6;
 const bit<8>  TYPE_UDP  = 17;
 const bit<16> TYPE_IPV4 = 0x800;
 
-const bit<48> window=1000000; //frequency that we reset the bytes received, in microseconds(1s)
+const bit<48> window_link_level=10000;
+const bit<48> window_flow_level=100*window_link_level; //frequency that we reset the bytes received, in microseconds(1s)
 const bit<32> contracted=100; //limit of bytes allowed during the time "window"
 const bit<32> maxFlows=10; //number of flows supported for now
-
 const bit<32> MIRROR_SESSION_ID = 99; //for cpu header
 
 /*************************************************************************
@@ -157,6 +157,7 @@ control MyIngress(inout headers hdr,
     register<bit<32>>(maxFlows) dropRates; //drop rates per flow level which are calculated in controller
     register<bit<1>>(maxFlows) isSeen; //in order to identify first packet in the flow(0 first Packet, 1 not)
     register<bit<32>>(maxFlows) packets_dropped; //counters for number of drops per flow level
+    register<bit<1>>(maxFlows) isHeavyHitter; //in order to undentify heavy hitters
 
     /*
     this function drops the packet and increases the counter for dropped packets per flow
@@ -210,14 +211,35 @@ control MyIngress(inout headers hdr,
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
         isSeen.write(flowId,1);
 
+        
+        startTime.read(_startTime, flowId);
+
+        //track rate threshold in link level
+        if(standard_metadata.ingress_global_timestamp-previousTime>=window_link_level) {
+                //previois time: n++*link level
+
+                //track threshold with incomming and contracted
+                
+        }
+
         /*
-        is time provided in "window" elapsed? 
+        if flow reaches flow-level window
         then : 
             *reset incoming byte counter
             *change the start time of the flow to current time
         */
-        startTime.read(_startTime, flowId);
-        if(standard_metadata.ingress_global_timestamp - _startTime>=window) {
+        if(standard_metadata.ingress_global_timestamp - _startTime>=window_flow_level) {
+
+            //if tracked link load exceeds given threshold within last window (e.g., above 60/80/90%):
+            if(tacked_link_load>60){
+                //  if flow causes given ratio of link utilization (e.g., 10/25/50%):
+                // if(){
+                    // treat flow as heavy hitter on that link and throttle to given ratio limit
+                    isHeavyHitter.write(flowId,1);
+                    dropRates.write(flowid, 30);
+                // }
+            }
+
             bytesReceived.write(flowId,0);
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
         }
@@ -239,7 +261,15 @@ control MyIngress(inout headers hdr,
             *read the drop rate calculated in controller and apply it
         */
          if(incomming > contracted) {
-            clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
+
+            bit<1> _isHeavyHitter;
+            isHeavyHitter.read(_isHeavyHitter,flowid);
+
+            //only clone if it is not heavy hitter
+            if(_isHeavyHitter){
+                 clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
+            }
+           
 
             bit<32> probability;
             random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
