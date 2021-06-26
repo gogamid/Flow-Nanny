@@ -7,11 +7,15 @@ const bit<8>  TYPE_TCP  = 6;
 const bit<8>  TYPE_UDP  = 17;
 const bit<16> TYPE_IPV4 = 0x800;
 
-const bit<48> window_link_level=10000;
-const bit<48> window_flow_level=100*window_link_level; //frequency that we reset the bytes received, in microseconds(1s)
-const bit<32> contracted=100; //limit of bytes allowed during the time "window"
+// const bit<48> window=1000000; //frequency that we reset the bytes received, in microseconds(1s)
+// const bit<32> contracted=100; //limit of bytes allowed during the time "window"
 const bit<32> maxFlows=10; //number of flows supported for now
-const bit<32> MIRROR_SESSION_ID = 99; //for cpu header
+const bit<32> portBasedByteLimit=100;    //in the given window
+const bit<48> flow_level_window=1000000; //frequency that we reset the bytes received, in microseconds(1s)
+
+
+
+// const bit<32> MIRROR_SESSION_ID = 99; //for cpu header
 
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
@@ -26,17 +30,17 @@ header ethernet_t {
     macAddr_t srcAddr;
     bit<16>   etherType;
 }
-// cpu header  to be sent to the controller (24 Bytes)
-header cpu_t {
-    bit<32> flowid;
-    bit<32> contracted;
-    bit<32> incomming;
-    bit<32> srcIP;
-    bit<32> dstIP;
-    bit<16> srcP;
-    bit<16> dstP;
+// // cpu header  to be sent to the controller (24 Bytes)
+// header cpu_t {
+//     bit<32> flowid;
+//     bit<32> contracted;
+//     bit<32> incomming;
+//     bit<32> srcIP;
+//     bit<32> dstIP;
+//     bit<16> srcP;
+//     bit<16> dstP;
 
-}
+// }
 
 header ipv4_t {
     bit<4>    version;
@@ -61,17 +65,17 @@ struct l4_ports_t {
 
 struct metadata {
     l4_ports_t l4_ports;
-    bit<32> flowid;
-    bit<32> contracted;
-    bit<32> incomming;
-    bit<32> srcIP;
-    bit<32> dstIP;
+    // bit<32> flowid;
+    // bit<32> contracted;
+    // bit<32> incomming;
+    // bit<32> srcIP;
+    // bit<32> dstIP;
 }
 
 struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
-    cpu_t        cpu;
+    // cpu_t        cpu;
 }
 
 
@@ -149,15 +153,16 @@ control MyIngress(inout headers hdr,
     bit<32> flowId; //calculated in get_flowId() function and used as an index for registers
     bit<1> _isSeen; //local help variable which is used with register "isSeen"
     bit<32> incomming; //local help variable which is used with register "bytesReceived"
-    bit<32> DROP_RATE; //local help variable which is used with register "dropRates"
     bit<48> _startTime; //local help variable which is used with register "startTime"
+    bit<32> link_load;
 
     register<bit<48>>(maxFlows) startTime; //start time of flows with index of flowId
     register<bit<32>>(maxFlows) bytesReceived; //number of bytes received per flow
     register<bit<32>>(maxFlows) dropRates; //drop rates per flow level which are calculated in controller
     register<bit<1>>(maxFlows) isSeen; //in order to identify first packet in the flow(0 first Packet, 1 not)
-    register<bit<32>>(maxFlows) packets_dropped; //counters for number of drops per flow level
+    register<bit<32>>(maxFlows) packets_dropped; //counters for number of drops per flow level 
     register<bit<1>>(maxFlows) isHeavyHitter; //in order to undentify heavy hitters
+    register<bit<32>>(3) linkLoad; //works on poort 1,2,3 level
 
     /*
     this function drops the packet and increases the counter for dropped packets per flow
@@ -176,9 +181,9 @@ control MyIngress(inout headers hdr,
     */
     action get_flowId(){
         hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
-        meta.flowid=flowId;
-        meta.srcIP=hdr.ipv4.srcAddr;
-        meta.dstIP=hdr.ipv4.dstAddr;
+        // meta.flowid=flowId;
+        // meta.srcIP=hdr.ipv4.srcAddr;
+        // meta.dstIP=hdr.ipv4.dstAddr;
      }
 
     /*
@@ -204,85 +209,71 @@ control MyIngress(inout headers hdr,
 
         get_flowId(); //calculate flow id from 5 tuple and save into flowid
         
-        /*Is it a first packet, then note time of ingress. 
-        It is needed for the decision whether reset the bytes received counter */
+        /*Is it a first packet, then note time of ingress. */
         isSeen.read(_isSeen, flowId);
         if(_isSeen==0) 
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
         isSeen.write(flowId,1);
+        
+        //do these if window  is elapsed 
+        startTime.read(_startTime, flowId);
+        if(standard_metadata.ingress_global_timestamp - _startTime>=flow_level_window) {
+            
+            //get tracked linked load
+            linkLoad.read(link_load, (bit<32>)standard_metadata.ingress_port);
+
+            if(5*link_load>4*portBasedByteLimit){ //above 80%
+
+                    //get flow byte counter
+                    bytesReceived.read(incomming, flowId);
+
+                    if(2*incomming>link_load){ //above 50%
+
+                       //treat flow as heavy hitter
+                        isHeavyHitter.write(flowId,1);
+
+                        //this part can be done in controller
+                        dropRates.write(flowId, 35);
+            
+
+                    }
+
+
+            } 
+
+            startTime.write(flowId, standard_metadata.ingress_global_timestamp);
+            linkLoad.write(1,0); //reset link load after window elapses
+            linkLoad.write(2,0); //reset link load after window elapses
+            linkLoad.write(3,0); //reset link load after window elapses
+            bytesReceived.write(flowId, 0);
+        }
 
         
-        startTime.read(_startTime, flowId);
+        //increase bytes received  by packet length port based
+        linkLoad.read(link_load,flowId);
+        linkLoad.write((bit<32>)standard_metadata.ingress_port, link_load+standard_metadata.packet_length);
 
-        //track rate threshold in link level
-        if(standard_metadata.ingress_global_timestamp-previousTime>=window_link_level) {
-                //previois time: n++*link level
-
-                //track threshold with incomming and contracted
-                
-        }
-
-        /*
-        if flow reaches flow-level window
-        then : 
-            *reset incoming byte counter
-            *change the start time of the flow to current time
-        */
-        if(standard_metadata.ingress_global_timestamp - _startTime>=window_flow_level) {
-
-            //if tracked link load exceeds given threshold within last window (e.g., above 60/80/90%):
-            if(tacked_link_load>60){
-                //  if flow causes given ratio of link utilization (e.g., 10/25/50%):
-                // if(){
-                    // treat flow as heavy hitter on that link and throttle to given ratio limit
-                    isHeavyHitter.write(flowId,1);
-                    dropRates.write(flowid, 30);
-                // }
-            }
-
-            bytesReceived.write(flowId,0);
-            startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-        }
-
-        //increase bytes received  by packet length
+        //increase bytes received  by packet length per flow
         bytesReceived.read(incomming,flowId);
         bytesReceived.write(flowId,incomming+standard_metadata.packet_length);
-       
-        //read the incomming bytes from register and save to meta in order to send to the controller
-        bytesReceived.read(incomming,flowId);
-        meta.incomming=incomming;
+        
 
-        /*
-        if   bytes received per window exceed the contracted bytes limit 
-        then:
-            *clone meta to egress and egress will prepend cpu header to the packet 
-             with relevant information for calculation of dynamic drop rate
-            *probability is generated with the help of random
-            *read the drop rate calculated in controller and apply it
-        */
-         if(incomming > contracted) {
 
-            bit<1> _isHeavyHitter;
-            isHeavyHitter.read(_isHeavyHitter,flowid);
-
-            //only clone if it is not heavy hitter
-            if(_isHeavyHitter){
-                 clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
-            }
-           
-
+        //heavy hitter? then throttle
+        bit<1> isHH;
+        isHeavyHitter.read(isHH,flowId);
+        if(isHH == 1){
             bit<32> probability;
             random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
-
-            dropRates.read(DROP_RATE, flowId);
-            if (probability <= DROP_RATE) {
+            
+            bit<32> dropRate;
+            dropRates.read(dropRate, flowId);
+            if (probability <= dropRate) {
                 drop();
-            }
-
-         }  
+        }
     }
 }
-
+}
 /*************************************************************************
 ****************  E G R E S S   P R O C E S S I N G   *******************
 *************************************************************************/
@@ -291,19 +282,19 @@ control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
     apply {
-        // if packet was cloned (instance_type == 1)
-        if (standard_metadata.instance_type == 1){
-            // populate cpu header
-            hdr.cpu.setValid();
-            hdr.cpu.flowid = meta.flowid;
-            hdr.cpu.incomming=meta.incomming;
-            hdr.cpu.contracted=contracted;
-            hdr.cpu.srcIP=meta.srcIP;
-            hdr.cpu.dstIP=meta.dstIP;
-            hdr.cpu.srcP=meta.l4_ports.src_port;
-            hdr.cpu.dstP=meta.l4_ports.dst_port;
-            truncate((bit<32>)58);  // Ether 14 Bytes, IP 20 Bytes  CPU Header (24 bytes)
-        }
+        // // if packet was cloned (instance_type == 1)
+        // if (standard_metadata.instance_type == 1){
+        //     // populate cpu header
+        //     hdr.cpu.setValid();
+        //     hdr.cpu.flowid = meta.flowid;
+        //     hdr.cpu.incomming=meta.incomming;
+        //     hdr.cpu.contracted=contracted;
+        //     hdr.cpu.srcIP=meta.srcIP;
+        //     hdr.cpu.dstIP=meta.dstIP;
+        //     hdr.cpu.srcP=meta.l4_ports.src_port;
+        //     hdr.cpu.dstP=meta.l4_ports.dst_port;
+        //     truncate((bit<32>)58);  // Ether 14 Bytes, IP 20 Bytes  CPU Header (24 bytes)
+        // }
       }
 }
 
@@ -339,7 +330,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
-        packet.emit(hdr.cpu);
+        // packet.emit(hdr.cpu);
     }
 }
 

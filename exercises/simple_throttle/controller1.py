@@ -25,6 +25,14 @@ def printDropRates(maxFlows):
     for x in range(maxFlows):
         print(controller.register_read("MyIngress.dropRates", x)),
 
+def printLinkLoad(ports):
+    for x in range(ports):
+        print(controller.register_read("MyIngress.linkLoad", x)),
+
+def printBytesReceived(maxFlows):
+    for x in range(maxFlows):
+        print(controller.register_read("MyIngress.bytesReceived", x)),
+
 #calculates drop rate for the flow with contracted and incomming
 def calculateDropRate(incomming, contracted):
     # we cannot devide to 0
@@ -103,6 +111,7 @@ def resetDropRate(index):
         print("flow "+str(index)+" drop rate has been set to 0")
 
 
+
 if __name__ == "__main__":
     action = sys.argv[1]
 
@@ -114,3 +123,10 @@ if __name__ == "__main__":
     elif action == "resetDR":
         index = sys.argv[2]
         resetDropRate(index)
+
+    elif action == "stats":
+        printDropRates(10)
+        print
+        printLinkLoad(3)
+        print
+        printBytesReceived(10)
