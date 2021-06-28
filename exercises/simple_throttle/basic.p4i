@@ -790,8 +790,9 @@ const bit<16> TYPE_IPV4 = 0x800;
 // const bit<48> window=1000000; //frequency that we reset the bytes received, in microseconds(1s)
 // const bit<32> contracted=100; //limit of bytes allowed during the time "window"
 const bit<32> maxFlows=10; //number of flows supported for now
-const bit<32> portBasedByteLimit=100; //in the given window
-const bit<48> flow_level_window=1000000; //frequency that we reset the bytes received, in microseconds(1s)
+const bit<32> portBasedByteLimit=1000; //in the given window
+const bit<48> link_level_window=1000000; //frequency that we reset the bytes received, in microseconds(1s)  linkload for this windows separrate
+const bit<48> flow_level_window=10*link_level_window; //frequency that we reset the bytes received, in microseconds(10s)
 
 
 
@@ -1002,7 +1003,7 @@ control MyIngress(inout headers hdr,
         if(standard_metadata.ingress_global_timestamp - _startTime>=flow_level_window) {
 
             //get tracked linked load
-            linkLoad.read(link_load, (bit<32>)standard_metadata.ingress_port);
+            linkLoad.read(link_load, (bit<32>)standard_metadata.ingress_port); //read from previously saved link load
 
             if(5*link_load>4*portBasedByteLimit){ //above 80%
 
@@ -1020,7 +1021,7 @@ control MyIngress(inout headers hdr,
             }
 
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-            linkLoad.write((bit<32>)standard_metadata.ingress_port,0); //reset link load after window elapses !!!change
+            linkLoad.write((bit<32>)standard_metadata.ingress_port,0); //reset link load after window elapses !!!change ????????????
             bytesReceived.write(flowId, 0);
         }
 
