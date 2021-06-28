@@ -209,11 +209,13 @@ control MyIngress(inout headers hdr,
 
         get_flowId(); //calculate flow id from 5 tuple and save into flowid
         
-        /*Is it a first packet, then note time of ingress. */
+        /*Is it a first packet, then note time of ingress. */  //try to run 
         isSeen.read(_isSeen, flowId);
-        if(_isSeen==0) 
+        if(_isSeen==0) {
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-        isSeen.write(flowId,1);
+            isSeen.write(flowId,1);
+        }
+            
         
         //do these if window  is elapsed 
         startTime.read(_startTime, flowId);
@@ -228,13 +230,9 @@ control MyIngress(inout headers hdr,
                     bytesReceived.read(incomming, flowId);
 
                     if(2*incomming>link_load){ //above 50%
-
-                       //treat flow as heavy hitter
-                        isHeavyHitter.write(flowId,1);
-
-                        //this part can be done in controller
-                        dropRates.write(flowId, 35);
-            
+                        //this part can be done in controller 
+                        //treat flow as heavy hitter
+                        dropRates.write(flowId, 30);
 
                     }
 
@@ -242,7 +240,7 @@ control MyIngress(inout headers hdr,
             } 
 
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-            linkLoad.write((bit<32>)standard_metadata.ingress_port,0); //reset link load after window elapses
+            linkLoad.write((bit<32>)standard_metadata.ingress_port,0); //reset link load after window elapses !!!change
             bytesReceived.write(flowId, 0);
         }
 
@@ -254,22 +252,17 @@ control MyIngress(inout headers hdr,
         //increase bytes received  by packet length per flow
         bytesReceived.read(incomming,flowId);
         bytesReceived.write(flowId,incomming+standard_metadata.packet_length);
+
+
+        // //applying probabilistic drop rate if there is
+        // bit<32> probability;
+        // random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
+        // bit<32> dropRate;
+        // dropRates.read(dropRate, flowId);
+        // if (probability <= dropRate) {
+        //     drop();
+        // }
         
-
-
-        //heavy hitter? then throttle
-        bit<1> isHH;
-        isHeavyHitter.read(isHH,flowId);
-        if(isHH == 1){
-            bit<32> probability;
-            random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
-            
-            bit<32> dropRate;
-            dropRates.read(dropRate, flowId);
-            if (probability <= dropRate) {
-                drop();
-        }
-    }
 }
 }
 /*************************************************************************
