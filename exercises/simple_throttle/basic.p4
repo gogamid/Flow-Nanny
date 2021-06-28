@@ -242,15 +242,13 @@ control MyIngress(inout headers hdr,
             } 
 
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-            linkLoad.write(1,0); //reset link load after window elapses
-            linkLoad.write(2,0); //reset link load after window elapses
-            linkLoad.write(3,0); //reset link load after window elapses
+            linkLoad.write((bit<32>)standard_metadata.ingress_port,0); //reset link load after window elapses
             bytesReceived.write(flowId, 0);
         }
 
         
         //increase bytes received  by packet length port based
-        linkLoad.read(link_load,flowId);
+        linkLoad.read(link_load,(bit<32>)standard_metadata.ingress_port); //change notice 
         linkLoad.write((bit<32>)standard_metadata.ingress_port, link_load+standard_metadata.packet_length);
 
         //increase bytes received  by packet length per flow
