@@ -20,7 +20,7 @@ const bit<32> maxFlows=10; //number of flows supported for now
 
 
 //to show the throttle in short time my recommendations
-const bit<32> portBasedByteLimit=1000000;    
+const bit<32> portBasedByteLimit=1000000; //1000000*8= 8 Megabits
 const bit<48> link_level_window=1000000 ; //link level window is 1 seconds
 const bit<48> flow_level_window=3000000; //flow level window is 3 seconds
 
