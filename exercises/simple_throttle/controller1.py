@@ -2,6 +2,7 @@ from p4utils.utils.topology import Topology
 from p4utils.utils.sswitch_API import SimpleSwitchAPI
 from scapy.all import Ether, sniff, Packet, BitField
 import ipaddress
+import time
 
 import sys
 
@@ -15,25 +16,42 @@ controller = SimpleSwitchAPI(thrift_port)
 controller.mirroring_add(MIRROR_SESSION_ID, cpu_port)
 
 # parses the cpu header
+
+
 class CpuHeader(Packet):
     name = 'CpuPacket'
     fields_desc = [BitField("fid", 0, 32), BitField("contracted", 0, 32), BitField("incomming", 0, 32), BitField(
         "srcIP", 0, 32), BitField("dstIP", 0, 32), BitField("srcP", 0, 16), BitField("dstP", 0, 16)]
 
-#prints out all drop rates from register
+# prints out all drop rates from register
+
+
 def printDropRates(maxFlows):
     for x in range(maxFlows):
         print(controller.register_read("MyIngress.dropRates", x)),
+
+
+def printHH(maxFlows):
+    for x in range(maxFlows):
+        print(controller.register_read("MyIngress.isHeavyHitter", x)),
+
 
 def printLinkLoad(ports):
     for x in range(ports):
         print(controller.register_read("MyIngress.linkLoad", x)),
 
+
 def printBytesReceived(maxFlows):
     for x in range(maxFlows):
         print(controller.register_read("MyIngress.bytesReceived", x)),
 
-#calculates drop rate for the flow with contracted and incomming
+def printBytesReceivedPort(maxFlows):
+    for x in range(maxFlows):
+        print(controller.register_read("MyIngress.bytesReceivedPort", x)),
+
+# calculates drop rate for the flow with contracted and incomming
+
+
 def calculateDropRate(incomming, contracted):
     # we cannot devide to 0
     if incomming == 0:
@@ -55,7 +73,6 @@ def calculateDropRate(incomming, contracted):
     return (1-div)*100
 
 
- 
 # this function receives the message from data plane.
 # It parses all the headers and saves the elements of cpu header to local variables.
 # With the help of those variables dynamic drop rates is calculated:
@@ -92,7 +109,8 @@ def msg_receive(pkt):
     drop_rate = x
 
     print("drop rate " + str(drop_rate))
-    controller.register_write("MyIngress.dropRates", str(fid), drop_rate) #write to the register
+    controller.register_write("MyIngress.dropRates", str(
+        fid), drop_rate)  # write to the register
     printDropRates(10)
     print("\n\n")
 
@@ -111,22 +129,31 @@ def resetDropRate(index):
         print("flow "+str(index)+" drop rate has been set to 0")
 
 
-
 if __name__ == "__main__":
     action = sys.argv[1]
 
-    #first program to calculate the drop rate. It need just 1 argument
+    # first program to calculate the drop rate. It need just 1 argument
     if action == "dynamicDR":
         sniff(iface="s1-cpu-eth1", prn=msg_receive)
 
-    #second program to reset the drop rate. It need just 2 arguments, second one is "all" or indexnumber
+    # second program to reset the drop rate. It need just 2 arguments, second one is "all" or indexnumber
     elif action == "resetDR":
         index = sys.argv[2]
         resetDropRate(index)
 
     elif action == "stats":
-        printDropRates(10)
-        print
+        # c=0
+        # while True:
+        #     c+=1
+        # print("\n******STAT NUMBER "+str(c)+"********")
+        print("Link Load per port currently:")
         printLinkLoad(3)
-        print
+        print("\nPrev Bytes Count per port currently:")
+        printBytesReceivedPort(3)
+        print("\nBytes Received Per Flow currently:")
         printBytesReceived(10)
+        print("\nDrop Rates are currently:")
+        printDropRates(10)
+        print("\nHeavy Hitters are:")
+        printHH(10)
+        # time.sleep(3)
