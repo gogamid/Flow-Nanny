@@ -122,6 +122,7 @@ def resetDropRate(index):
     if index == "all":
         for item in range(10):
             controller.register_write("MyIngress.dropRates", str(item), 0)
+            controller.register_write("MyIngress.isHeavyHitter", str(item), 0)
             print("flow "+str(item)+" drop rate has been set to 0")
         print("all flow drop rates have been set to 0")
     else:
@@ -130,6 +131,7 @@ def resetDropRate(index):
 
 
 if __name__ == "__main__":
+
     action = sys.argv[1]
 
     # first program to calculate the drop rate. It need just 1 argument
@@ -146,14 +148,26 @@ if __name__ == "__main__":
         # while True:
         #     c+=1
         # print("\n******STAT NUMBER "+str(c)+"********")
-        print("Link Load per port currently:")
-        printLinkLoad(3)
-        print("\nPrev Bytes Count per port currently:")
-        printBytesReceivedPort(3)
-        print("\nBytes Received Per Flow currently:")
-        printBytesReceived(10)
+        # print("Link Load per port currently:")
+        # printLinkLoad(3)
+        # print("\nPrev Bytes Count per port currently:")
+        # printBytesReceivedPort(3)
+        # print("\nBytes Received Per Flow currently:")
+        # printBytesReceived(10)
+        print(controller.register_read("MyIngress.whitelistedFlow", 0 ))
         print("\nDrop Rates are currently:")
         printDropRates(10)
         print("\nHeavy Hitters are:")
         printHH(10)
+
         # time.sleep(3)
+    elif action == "set":
+        index = sys.argv[2]
+        controller.register_write("MyIngress.dropRates", str(index), 20)
+         controller.register_write("MyIngress.isHeavyHitter", str(index), 1)
+    elif action == "reset":
+        index = sys.argv[2]
+        controller.register_write("MyIngress.dropRates", str(index), 0)
+        controller.register_write("MyIngress.isHeavyHitter", str(index), 0)
+
+
