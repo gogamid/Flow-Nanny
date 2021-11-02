@@ -1058,105 +1058,105 @@ control MyIngress(inout headers hdr,
     apply {
         pkt_forward.apply();
 
-    //     //get flow id
-    //     hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
-    //     if(hdr.ipv4.srcAddr==167772417 && hdr.ipv4.dstAddr==167772419) 
-    //      whitelistedFlow.write(0, flowId);
+        //get flow id
+        hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
+        if(hdr.ipv4.srcAddr==167772417 && hdr.ipv4.dstAddr==167772419)
+         whitelistedFlow.write(0, flowId);
 
-    //     bit<32> temp;
-    //     whitelistedFlow.read(temp, 0);
+        bit<32> temp;
+        whitelistedFlow.read(temp, 0);
 
-    //         current_iPort = (bit<32>)standard_metadata.ingress_port;
+            current_iPort = (bit<32>)standard_metadata.ingress_port;
 
-    //         /////////LINK LEVEL WINDOW MANAGEMENT START////////////
+            /////////LINK LEVEL WINDOW MANAGEMENT START////////////
 
-    //         /*Is it a first packet of port, then note time of ingress. */  
-    //         isSeenPort.read(_isSeenPort, current_iPort);
-    //         if(_isSeenPort==0) {
-    //             startTimePort.write(current_iPort, standard_metadata.ingress_global_timestamp);
-    //             isSeenPort.write(current_iPort,1);
-    //         }
+            /*Is it a first packet of port, then note time of ingress. */
+            isSeenPort.read(_isSeenPort, current_iPort);
+            if(_isSeenPort==0) {
+                startTimePort.write(current_iPort, standard_metadata.ingress_global_timestamp);
+                isSeenPort.write(current_iPort,1);
+            }
 
-    //         //link level window each 5 seconds
-    //         startTimePort.read(_startTimePort, current_iPort);
-    //         if(standard_metadata.ingress_global_timestamp - _startTimePort>=link_level_window) {
-    //             //save bytes received from particular port each 5 seconds
-    //             linkLoad.read(link_load,current_iPort);//read current bytes to link load
-    //             bytesReceivedPort.write(current_iPort, link_load); //save link load to bytesReceivedPort with indexof ingress port
+            //link level window each 5 seconds
+            startTimePort.read(_startTimePort, current_iPort);
+            if(standard_metadata.ingress_global_timestamp - _startTimePort>=link_level_window) {
+                //save bytes received from particular port each 5 seconds
+                linkLoad.read(link_load,current_iPort);//read current bytes to link load
+                bytesReceivedPort.write(current_iPort, link_load); //save link load to bytesReceivedPort with indexof ingress port
 
-    //             //reset timer->current time is start time
-    //             startTimePort.write(current_iPort, standard_metadata.ingress_global_timestamp);
-    //             //reset counter
-    //             linkLoad.write(current_iPort, 0);
+                //reset timer->current time is start time
+                startTimePort.write(current_iPort, standard_metadata.ingress_global_timestamp);
+                //reset counter
+                linkLoad.write(current_iPort, 0);
 
-    //         }
+            }
 
-    //         /*Is it a first packet of flow, then note time of ingress. */ 
-    //         isSeen.read(_isSeen, flowId);
-    //         if(_isSeen==0) {
-    //             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-    //             isSeen.write(flowId,1);
-    //         }
-    //         //increase bytes received  by packet length port based
-    //         linkLoad.read(link_load,(bit<32>)standard_metadata.ingress_port); //read current bytes
-    //         linkLoad.write((bit<32>)standard_metadata.ingress_port, link_load+standard_metadata.packet_length); //increase byte counter by a package
+            /*Is it a first packet of flow, then note time of ingress. */
+            isSeen.read(_isSeen, flowId);
+            if(_isSeen==0) {
+                startTime.write(flowId, standard_metadata.ingress_global_timestamp);
+                isSeen.write(flowId,1);
+            }
+            //increase bytes received  by packet length port based
+            linkLoad.read(link_load,(bit<32>)standard_metadata.ingress_port); //read current bytes
+            linkLoad.write((bit<32>)standard_metadata.ingress_port, link_load+standard_metadata.packet_length); //increase byte counter by a package
 
-    //     /////////LINK LEVEL WINDOW MANAGEMENT END////////////    
+        /////////LINK LEVEL WINDOW MANAGEMENT END////////////    
 
-    //     /////////FLOW LEVEL WINDOW MANAGEMENT START////////////    
+        /////////FLOW LEVEL WINDOW MANAGEMENT START////////////    
 
-    //         // flow level window each 15 seconds
-    //         startTime.read(_startTime, flowId);
-    //         if(standard_metadata.ingress_global_timestamp - _startTime>=flow_level_window) {
+            // flow level window each 15 seconds
+            startTime.read(_startTime, flowId);
+            if(standard_metadata.ingress_global_timestamp - _startTime>=flow_level_window) {
 
-    //             //read previous port based by counter
-    //             bytesReceivedPort.read(prevPortBasedBytes, current_iPort); //read port based bytes to local var
-
-
-    //             //if prev port based bytes are above 80% than limit
-    //             if(5*prevPortBasedBytes>4*portBasedByteLimit){ 
-
-    //                     //get flow byte counter
-    //                     bytesReceived.read(prevFlowBasedBytes, flowId);
-
-    //                     if(2*prevFlowBasedBytes>prevPortBasedBytes){ //if this flow is above 50% of prev link load
-    //                         //this part can be done in controller 
-    //                         //treat flow as heavy hitter
-    //                         if(flowId!=temp) {
-    //                         	 isHeavyHitter.write(flowId, 1);
-    //                             dropRates.write(flowId, 10);
-    //                         }
-
-    //                     }
+                //read previous port based by counter
+                bytesReceivedPort.read(prevPortBasedBytes, current_iPort); //read port based bytes to local var
 
 
-    //             } 
+                //if prev port based bytes are above 80% than limit
+                if(5*prevPortBasedBytes>4*portBasedByteLimit){
 
-    //             //reset flow level window
-    //             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-    //             //reset flow level counter
-    //             bytesReceived.write(flowId, 0);
-    //         }
+                        //get flow byte counter
+                        bytesReceived.read(prevFlowBasedBytes, flowId);
 
-    //         //increase bytes received  by packet length per flow
-    //         bytesReceived.read(prevFlowBasedBytes,flowId);
-    //         bytesReceived.write(flowId,prevFlowBasedBytes+standard_metadata.packet_length);
+                        if(2*prevFlowBasedBytes>prevPortBasedBytes){ //if this flow is above 50% of prev link load
+                            //this part can be done in controller 
+                            //treat flow as heavy hitter
+                            if(flowId!=temp) {
+                              isHeavyHitter.write(flowId, 1);
+                                dropRates.write(flowId, 10);
+                            }
 
-    //         /////////FLOW LEVEL WINDOW MANAGEMENT END////////////   
+                        }
 
-    //         //throttle to given drop drate probabilisticly if this flow is heavy hitter
-    //         bit<1> isHH=0;
-    //         isHeavyHitter.read(isHH, flowId);        
-    //         if(isHH==1){
-    //             //applying probabilistic drop rate if there is
-    //             bit<32> probability;
-    //             random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
-    //             bit<32> dropRate;
-    //             dropRates.read(dropRate, flowId);
-    //             if (probability <= dropRate) {
-    //                 drop();
-    //             }
-    //         }
+
+                }
+
+                //reset flow level window
+                startTime.write(flowId, standard_metadata.ingress_global_timestamp);
+                //reset flow level counter
+                bytesReceived.write(flowId, 0);
+            }
+
+            //increase bytes received  by packet length per flow
+            bytesReceived.read(prevFlowBasedBytes,flowId);
+            bytesReceived.write(flowId,prevFlowBasedBytes+standard_metadata.packet_length);
+
+            /////////FLOW LEVEL WINDOW MANAGEMENT END////////////   
+
+            //throttle to given drop drate probabilisticly if this flow is heavy hitter
+            bit<1> isHH=0;
+            isHeavyHitter.read(isHH, flowId);
+            if(isHH==1){
+                //applying probabilistic drop rate if there is
+                bit<32> probability;
+                random<bit<32>>(probability, 32w0, 32w100); // [0,...,100]
+                bit<32> dropRate;
+                dropRates.read(dropRate, flowId);
+                if (probability <= dropRate) {
+                    drop();
+                }
+            }
 
     }
 
