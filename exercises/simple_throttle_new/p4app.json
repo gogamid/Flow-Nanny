@@ -4,7 +4,7 @@
   "pcap_dump": true,
   "enable_log": true,
   "topology": {
-    "default": {"bw":10.2},
+    "default": {"bw":1},
     "assignment_strategy": "mixed",
     "links": [["h1", "s1"], ["s1", "h2"],  ["s1", "h3"]],
     "hosts": {
