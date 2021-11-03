@@ -5,12 +5,9 @@ Adding interface s1-eth1 as port 1
 Adding interface s1-eth2 as port 2
 Adding interface s1-eth3 as port 3
 Adding interface s1-cpu-eth0 as port 4
-[18:31:02.157] [bmv2] [I] [thread 21123] Starting Thrift server on port 9090
-[18:31:02.157] [bmv2] [I] [thread 21123] Thrift server was started
-[18:31:02.794] [bmv2] [T] [thread 21201] bm_get_config
-[18:31:02.798] [bmv2] [T] [thread 21201] bm_table_add_entry
-[18:31:02.800] [bmv2] [T] [thread 21201] bm_table_add_entry
-[18:31:02.802] [bmv2] [T] [thread 21201] bm_table_add_entry
-open: No such file or directory
-open: No such file or directory
-open: No such file or directory
+[13:52:25.150] [bmv2] [I] [thread 24901] Starting Thrift server on port 9090
+[13:52:25.151] [bmv2] [I] [thread 24901] Thrift server was started
+[13:52:26.447] [bmv2] [T] [thread 24963] bm_get_config
+[13:52:26.452] [bmv2] [T] [thread 24963] bm_table_add_entry
+[13:52:26.454] [bmv2] [T] [thread 24963] bm_table_add_entry
+[13:52:26.455] [bmv2] [T] [thread 24963] bm_table_add_entry

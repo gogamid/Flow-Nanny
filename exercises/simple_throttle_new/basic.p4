@@ -192,25 +192,25 @@ control MyIngress(inout headers hdr,
 
     apply {
         pkt_forward.apply();
-        // hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
-        //  if((hdr.ipv4.srcAddr==167772417 && hdr.ipv4.dstAddr==167772419) || (hdr.ipv4.srcAddr==167772419 && hdr.ipv4.dstAddr==167772417)){
-        //     isHeavyHitter.write(flowId, 1);
-        //     dropRates.write(flowId, 10);
-        // } 
+        hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
+         if (standard_metadata.ingress_port == 3 ){
+            isHeavyHitter.write(flowId, 1);
+            dropRates.write(flowId, 15);
+        } 
         
         
-        // bit<1> isHH=0;
-        // isHeavyHitter.read(isHH, flowId);        
-        // if(isHH==1){
-        //     //applying probabilistic drop rate if there is
-        //     bit<32> probability;
-        //     random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
-        //     bit<32> dropRate;
-        //     dropRates.read(dropRate, flowId);
-        //     if (probability <= dropRate) {
-        //         drop();
-        //     }
-        // }
+        bit<1> isHH=0;
+        isHeavyHitter.read(isHH, flowId);        
+        if(isHH==1){
+            //applying probabilistic drop rate if there is
+            bit<32> probability;
+            random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
+            bit<32> dropRate;
+            dropRates.read(dropRate, flowId);
+            if (probability <= dropRate) {
+                drop();
+            }
+        }
         
 
         //get flow id
@@ -258,6 +258,14 @@ control MyIngress(inout headers hdr,
         
         // /////////LINK LEVEL WINDOW MANAGEMENT END////////////    
 
+        /*
+        same logic
+        index egress identifier
+        register for counting bytes
+
+        */
+        
+
         // /////////FLOW LEVEL WINDOW MANAGEMENT START////////////    
         
         //     // flow level window each 15 seconds
@@ -268,13 +276,13 @@ control MyIngress(inout headers hdr,
         //         bytesReceivedPort.read(prevPortBasedBytes, current_iPort); //read port based bytes to local var
 
                 
-        //         //if prev port based bytes are above 80% than limit
-        //         if(5*prevPortBasedBytes>4*portBasedByteLimit){ 
+        //         //if prev port based bytes are above 80% than limit //
+        //         if(5*prevPortBasedBytes>4*portBasedByteLimit ){   //prevPortBasedBytesEgress  OR condition
 
         //                 //get flow byte counter
         //                 bytesReceived.read(prevFlowBasedBytes, flowId);
 
-        //                 if(2*prevFlowBasedBytes>prevPortBasedBytes){ //if this flow is above 50% of prev link load
+        //                 if(2*prevFlowBasedBytes>prevPortBasedBytes){ //if this flow is above 50% of prev link load ////prevPortBasedBytesEgress  //OR condition
         //                     //this part can be done in controller 
         //                     //treat flow as heavy hitter
         //                     if(flowId!=temp) {
@@ -324,6 +332,8 @@ control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
     apply {
+
+        //do egress counter here 
       }
 }
 
