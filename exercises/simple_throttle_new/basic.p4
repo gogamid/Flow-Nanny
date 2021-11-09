@@ -11,6 +11,7 @@ const bit<32> maxFlows=10; //number of flows supported for now
 // const bit<32> portBasedByteLimit=5000000;    //limit till 50 Mbit per 5 seconds=> 10Mbit/s
 // const bit<48> link_level_window=5000000 ; //link level window is 5 seconds
 // const bit<48> flow_level_window=15000000; //flow level window is 15 seconds
+//TODO 
 
 
 /*************************************************************************
@@ -157,7 +158,7 @@ control MyIngress(inout headers hdr,
     register<bit<1>>(maxFlows) isHeavyHitter; //in order to undentify heavy hitters
 
     // register<bit<32>>(1) whitelistedFlow;
-    
+    //TODO 
 
 
 
@@ -258,6 +259,7 @@ control MyIngress(inout headers hdr,
         
         // /////////LINK LEVEL WINDOW MANAGEMENT END////////////    
 
+        //TODO 
         /*
         same logic
         index egress identifier
@@ -277,12 +279,12 @@ control MyIngress(inout headers hdr,
 
                 
         //         //if prev port based bytes are above 80% than limit //
-        //         if(5*prevPortBasedBytes>4*portBasedByteLimit ){   //prevPortBasedBytesEgress  OR condition
+        //         if(5*prevPortBasedBytes>4*portBasedByteLimit ){   //prevPortBasedBytesEgress  OR condition //TODO 
 
         //                 //get flow byte counter
         //                 bytesReceived.read(prevFlowBasedBytes, flowId);
 
-        //                 if(2*prevFlowBasedBytes>prevPortBasedBytes){ //if this flow is above 50% of prev link load ////prevPortBasedBytesEgress  //OR condition
+        //                 if(2*prevFlowBasedBytes>prevPortBasedBytes){ //if this flow is above 50% of prev link load ////prevPortBasedBytesEgress  //OR condition  //TODO 
         //                     //this part can be done in controller 
         //                     //treat flow as heavy hitter
         //                     if(flowId!=temp) {

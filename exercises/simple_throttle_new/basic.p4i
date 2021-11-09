@@ -1123,6 +1123,14 @@ control MyIngress(inout headers hdr,
 
         // /////////LINK LEVEL WINDOW MANAGEMENT END////////////    
 
+        /*
+        same logic
+        index egress identifier
+        register for counting bytes
+
+        */
+
+
         // /////////FLOW LEVEL WINDOW MANAGEMENT START////////////    
 
         //     // flow level window each 15 seconds
@@ -1133,13 +1141,13 @@ control MyIngress(inout headers hdr,
         //         bytesReceivedPort.read(prevPortBasedBytes, current_iPort); //read port based bytes to local var
 
 
-        //         //if prev port based bytes are above 80% than limit
-        //         if(5*prevPortBasedBytes>4*portBasedByteLimit){ 
+        //         //if prev port based bytes are above 80% than limit //
+        //         if(5*prevPortBasedBytes>4*portBasedByteLimit ){   //prevPortBasedBytesEgress  OR condition
 
         //                 //get flow byte counter
         //                 bytesReceived.read(prevFlowBasedBytes, flowId);
 
-        //                 if(2*prevFlowBasedBytes>prevPortBasedBytes){ //if this flow is above 50% of prev link load
+        //                 if(2*prevFlowBasedBytes>prevPortBasedBytes){ //if this flow is above 50% of prev link load ////prevPortBasedBytesEgress  //OR condition
         //                     //this part can be done in controller 
         //                     //treat flow as heavy hitter
         //                     if(flowId!=temp) {
@@ -1189,6 +1197,8 @@ control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
     apply {
+
+        //do egress counter here 
       }
 }
 
