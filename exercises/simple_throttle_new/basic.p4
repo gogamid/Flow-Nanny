@@ -12,6 +12,8 @@ const bit<32> portBasedByteLimit=500000; //limit till 5 Mbit per 5 seconds
 const bit<48> link_level_window=5000000 ; //link level window is 5 seconds
 const bit<48> flow_level_window=15000000; //flow level window is 15 seconds
 
+const bit<32> MIRROR_SESSION_ID = 99; //for cpu header
+
 
 
 /*************************************************************************
@@ -26,6 +28,11 @@ header ethernet_t {
     macAddr_t dstAddr;
     macAddr_t srcAddr;
     bit<16>   etherType;
+}
+
+// cpu header  to be sent to the controller (4 Bytes)
+header cpu_t {
+    bit<32> flowid;
 }
 
 header ipv4_t {
@@ -51,11 +58,13 @@ struct l4_ports_t {
 
 struct metadata {
     l4_ports_t l4_ports;
+    bit<32> flowid;
 }
 
 struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
+    cpu_t        cpu;
 }
 
 
@@ -128,8 +137,6 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
-
-   
     //registers and local variables
     bit<32> flowId; //calculated in get_flowId() function and used as an index for registers
     bit<32> current_iPort; //ingress port
@@ -205,123 +212,127 @@ control MyIngress(inout headers hdr,
         //get flow id
         hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
 
-        /////////INGRESS////////////
-        current_iPort = (bit<32>)standard_metadata.ingress_port;
+        //test clone
+        meta.flowid = flowId;
+        clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
 
-        /*Is it a first packet of port, then note time of ingress. */  
-        isSeenPort.read(_isSeenPort, current_iPort);
-        if(_isSeenPort==0) {
-            startTimePort.write(current_iPort, standard_metadata.ingress_global_timestamp);
-            isSeenPort.write(current_iPort,1);
-        }
+        // /////////INGRESS////////////
+        // current_iPort = (bit<32>)standard_metadata.ingress_port;
 
-        //link level window each 5 seconds
-        startTimePort.read(_startTimePort, current_iPort);
-        if(standard_metadata.ingress_global_timestamp - _startTimePort>=link_level_window) {
-            //save bytes received from particular port each 5 seconds
-            linkLoad.read(link_load,current_iPort);//read current bytes to link load
-            bytesReceivedPort.write(current_iPort, link_load); //save link load to bytesReceivedPort with indexof ingress port
+        // /*Is it a first packet of port, then note time of ingress. */  
+        // isSeenPort.read(_isSeenPort, current_iPort);
+        // if(_isSeenPort==0) {
+        //     startTimePort.write(current_iPort, standard_metadata.ingress_global_timestamp);
+        //     isSeenPort.write(current_iPort,1);
+        // }
+
+        // //link level window each 5 seconds
+        // startTimePort.read(_startTimePort, current_iPort);
+        // if(standard_metadata.ingress_global_timestamp - _startTimePort>=link_level_window) {
+        //     //save bytes received from particular port each 5 seconds
+        //     linkLoad.read(link_load,current_iPort);//read current bytes to link load
+        //     bytesReceivedPort.write(current_iPort, link_load); //save link load to bytesReceivedPort with indexof ingress port
         
-            //reset timer->current time is start time
-            startTimePort.write(current_iPort, standard_metadata.ingress_global_timestamp);
-            //reset counter
-            linkLoad.write(current_iPort, 0);
-        }
+        //     //reset timer->current time is start time
+        //     startTimePort.write(current_iPort, standard_metadata.ingress_global_timestamp);
+        //     //reset counter
+        //     linkLoad.write(current_iPort, 0);
+        // }
         
-        //increase bytes received  by packet length port based
-        linkLoad.read(link_load,(bit<32>)standard_metadata.ingress_port); //read current bytes
-        linkLoad.write((bit<32>)standard_metadata.ingress_port, link_load+standard_metadata.packet_length); //increase byte counter by a package
+        // //increase bytes received  by packet length port based
+        // linkLoad.read(link_load,(bit<32>)standard_metadata.ingress_port); //read current bytes
+        // linkLoad.write((bit<32>)standard_metadata.ingress_port, link_load+standard_metadata.packet_length); //increase byte counter by a package
         
-        ////////INGRESS////////////
+        // ////////INGRESS////////////
 
 
-        /////////EGRESS////////////
-        current_ePort = (bit<32>)standard_metadata.egress_spec;  // ?? egress_spec is correctly used?
+        // /////////EGRESS////////////
+        // current_ePort = (bit<32>)standard_metadata.egress_spec;  // ?? egress_spec is correctly used?
 
-        /*Is it a first packet of port, then note time of egress. */  
-        isSeenPortEgress.read(_isSeenPortEgress, current_ePort);
-        if (_isSeenPortEgress == 0) {
-            startTimePortEgress.write(current_ePort, standard_metadata.egress_global_timestamp); // ?? egress_global_timestamp correct?
-            isSeenPortEgress.write(current_ePort,1);
-        }
+        // /*Is it a first packet of port, then note time of egress. */  
+        // isSeenPortEgress.read(_isSeenPortEgress, current_ePort);
+        // if (_isSeenPortEgress == 0) {
+        //     startTimePortEgress.write(current_ePort, standard_metadata.egress_global_timestamp); // ?? egress_global_timestamp correct?
+        //     isSeenPortEgress.write(current_ePort,1);
+        // }
 
-        //link level window each 5 seconds
-        startTimePortEgress.read(_startTimePortEgress, current_ePort);
-        if (standard_metadata.egress_global_timestamp - _startTimePortEgress >= link_level_window) {
-            //save bytes received from particular port each 5 seconds
-            linkLoadEgress.read(link_load_egress, current_ePort);//read current bytes to link load
-            bytesSentPort.write(current_ePort, link_load_egress); //save link load to bytesReceivedPort with indexof egress port
+        // //link level window each 5 seconds
+        // startTimePortEgress.read(_startTimePortEgress, current_ePort);
+        // if (standard_metadata.egress_global_timestamp - _startTimePortEgress >= link_level_window) {
+        //     //save bytes received from particular port each 5 seconds
+        //     linkLoadEgress.read(link_load_egress, current_ePort);//read current bytes to link load
+        //     bytesSentPort.write(current_ePort, link_load_egress); //save link load to bytesReceivedPort with indexof egress port
         
-            //reset timer->current time is start time
-            startTimePortEgress.write(current_ePort, standard_metadata.egress_global_timestamp);
-            //reset counter
-            linkLoadEgress.write(current_ePort, 0);
-        }
+        //     //reset timer->current time is start time
+        //     startTimePortEgress.write(current_ePort, standard_metadata.egress_global_timestamp);
+        //     //reset counter
+        //     linkLoadEgress.write(current_ePort, 0);
+        // }
        
-        //increase bytes received  by packet length port based
-        linkLoadEgress.read(link_load_egress,(bit<32>)standard_metadata.egress_port); //read current bytes
-        linkLoadEgress.write((bit<32>)standard_metadata.egress_port, link_load_egress + standard_metadata.packet_length); //increase byte counter by a package
+        // //increase bytes received  by packet length port based
+        // linkLoadEgress.read(link_load_egress,(bit<32>)standard_metadata.egress_port); //read current bytes
+        // linkLoadEgress.write((bit<32>)standard_metadata.egress_port, link_load_egress + standard_metadata.packet_length); //increase byte counter by a package
         
-        /////////EGRESS END//////////// 
+        // /////////EGRESS END//////////// 
 
 
-        /////////FLOW LEVEL WINDOW MANAGEMENT START////////////
+        // /////////FLOW LEVEL WINDOW MANAGEMENT START////////////
 
-        /*Is it a first packet of flow, then note time of ingress. */ 
-        isSeen.read(_isSeen, flowId);
-        if (_isSeen == 0) {
-            startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-            isSeen.write(flowId,1);
-        }    
+        // /*Is it a first packet of flow, then note time of ingress. */ 
+        // isSeen.read(_isSeen, flowId);
+        // if (_isSeen == 0) {
+        //     startTime.write(flowId, standard_metadata.ingress_global_timestamp);
+        //     isSeen.write(flowId,1);
+        // }    
         
-        // flow level window each 15 seconds
-        startTime.read(_startTime, flowId);
-        if(standard_metadata.ingress_global_timestamp - _startTime >= flow_level_window) {
+        // // flow level window each 15 seconds
+        // startTime.read(_startTime, flowId);
+        // if(standard_metadata.ingress_global_timestamp - _startTime >= flow_level_window) {
                 
-                //read previous port based by counter
-                bytesReceivedPort.read(prevPortBasedBytes, current_iPort); //read ingress port based bytes to local var
-                bytesSentPort.read(prevPortBasedBytesEgress, current_ePort); //read egress port based bytes to local var
+        //         //read previous port based by counter
+        //         bytesReceivedPort.read(prevPortBasedBytes, current_iPort); //read ingress port based bytes to local var
+        //         bytesSentPort.read(prevPortBasedBytesEgress, current_ePort); //read egress port based bytes to local var
 
                 
-                //if prev ingress or egress port based bytes are above 80% than limit 
-                if((5*prevPortBasedBytes > 4*portBasedByteLimit) || (5*prevPortBasedBytesEgress>4*portBasedByteLimit) ){ 
+        //         //if prev ingress or egress port based bytes are above 80% than limit 
+        //         if((5*prevPortBasedBytes > 4*portBasedByteLimit) || (5*prevPortBasedBytesEgress>4*portBasedByteLimit) ){ 
 
-                        //get flow byte counter
-                        bytesReceived.read(prevFlowBasedBytes, flowId);
+        //                 //get flow byte counter
+        //                 bytesReceived.read(prevFlowBasedBytes, flowId);
 
-                        if((2 * prevFlowBasedBytes > prevPortBasedBytes) || (2 * prevFlowBasedBytes > prevPortBasedBytesEgress)){ //if this flow is above 50% of prev link load 
-                            //this part can be done in controller 
-                            //treat flow as heavy hitter
-                            isHeavyHitter.write(flowId, 1);
-                            dropRates.write(flowId, 10);
-                        }
-                } 
+        //                 if((2 * prevFlowBasedBytes > prevPortBasedBytes) || (2 * prevFlowBasedBytes > prevPortBasedBytesEgress)){ //if this flow is above 50% of prev link load 
+        //                     //this part can be done in controller 
+        //                     //treat flow as heavy hitter
+        //                     isHeavyHitter.write(flowId, 1);
+        //                     dropRates.write(flowId, 10);
+        //                 }
+        //         } 
                 
-                //reset flow level window
-                startTime.write(flowId, standard_metadata.ingress_global_timestamp);
-                //reset flow level counter
-                bytesReceived.write(flowId, 0);
-            }
+        //         //reset flow level window
+        //         startTime.write(flowId, standard_metadata.ingress_global_timestamp);
+        //         //reset flow level counter
+        //         bytesReceived.write(flowId, 0);
+        //     }
 
-            //increase bytes received  by packet length per flow
-            bytesReceived.read(prevFlowBasedBytes,flowId);
-            bytesReceived.write(flowId,prevFlowBasedBytes+standard_metadata.packet_length);
+        //     //increase bytes received  by packet length per flow
+        //     bytesReceived.read(prevFlowBasedBytes,flowId);
+        //     bytesReceived.write(flowId,prevFlowBasedBytes+standard_metadata.packet_length);
             
-            /////////FLOW LEVEL WINDOW MANAGEMENT END////////////   
+        //     /////////FLOW LEVEL WINDOW MANAGEMENT END////////////   
 
-            //throttle to given drop drate probabilisticly if this flow is heavy hitter
-            bit<1> isHH=0;
-            isHeavyHitter.read(isHH, flowId);        
-            if(isHH==1){
-                //applying probabilistic drop rate if there is
-                bit<32> probability;
-                random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
-                bit<32> dropRate;
-                dropRates.read(dropRate, flowId);
-                if (probability <= dropRate) {
-                    drop();
-                }
-            }
+        //     //throttle to given drop drate probabilisticly if this flow is heavy hitter
+        //     bit<1> isHH=0;
+        //     isHeavyHitter.read(isHH, flowId);        
+        //     if(isHH==1){
+        //         //applying probabilistic drop rate if there is
+        //         bit<32> probability;
+        //         random<bit<32>>(probability, 32w0, 32w100);    // [0,...,100]
+        //         bit<32> dropRate;
+        //         dropRates.read(dropRate, flowId);
+        //         if (probability <= dropRate) {
+        //             drop();
+        //         }
+        //     }
         
     }  
 
@@ -334,6 +345,18 @@ control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
     apply {
+          // if packet was cloned instance_type =1
+        if (standard_metadata.instance_type == 1){
+            // populate cpu header
+            hdr.cpu.setValid();
+            hdr.cpu.flowid = meta.flowid;
+            // truncate((bit<32>)4);  // get only start of packet -  CPU Header (4 bytes)
+            
+            // Disable other headers
+            hdr.ethernet.setInvalid();
+            hdr.ipv4.setInvalid();
+        }
+
       }
 }
 
@@ -367,8 +390,11 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
 
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
+        packet.emit(hdr.cpu);
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
+        
+       
     }
 }
 
