@@ -212,8 +212,10 @@ control MyIngress(inout headers hdr,
         //get flow id
         hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
 
+        log_msg("flow id of current flow is {}", {flowId});
         //test clone
         meta.flowid = flowId;
+        
         clone3(CloneType.I2E, MIRROR_SESSION_ID, meta);
 
         // /////////INGRESS////////////
@@ -393,8 +395,6 @@ control MyDeparser(packet_out packet, in headers hdr) {
         packet.emit(hdr.cpu);
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
-        
-       
     }
 }
 

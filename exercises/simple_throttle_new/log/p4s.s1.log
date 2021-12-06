@@ -5,36 +5,135 @@ Adding interface s1-eth1 as port 1
 Adding interface s1-eth2 as port 2
 Adding interface s1-eth3 as port 3
 Adding interface s1-cpu-eth0 as port 4
-[12:29:33.467] [bmv2] [I] [thread 24705] Starting Thrift server on port 9090
-[12:29:33.471] [bmv2] [I] [thread 24705] Thrift server was started
-[12:29:35.007] [bmv2] [T] [thread 24775] bm_get_config
-[12:29:35.015] [bmv2] [T] [thread 24775] bm_table_add_entry
-[12:29:35.017] [bmv2] [T] [thread 24775] bm_table_add_entry
-[12:29:35.019] [bmv2] [T] [thread 24775] bm_table_add_entry
-[12:34:31.423] [bmv2] [T] [thread 25245] bm_get_config
-[12:34:31.460] [bmv2] [T] [thread 25245] bm_mt_get_entries
-[12:34:31.465] [bmv2] [T] [thread 25245] bm_reset_state
-[12:34:31.466] [bmv2] [D] [thread 25245] Resetting simple_switch target-specific state
-[12:34:31.466] [bmv2] [D] [thread 25245] resetting PRE state
-[12:34:31.468] [bmv2] [T] [thread 25246] mirroring_sesssion_add
-[12:34:31.724] [bmv2] [I] [thread 24712] IMRON IS COMMENTING
-[12:36:04.014] [bmv2] [I] [thread 24712] IMRON IS COMMENTING
-[12:36:05.011] [bmv2] [I] [thread 24712] IMRON IS COMMENTING
-[12:36:07.019] [bmv2] [I] [thread 24712] IMRON IS COMMENTING
-[12:36:11.275] [bmv2] [I] [thread 24712] IMRON IS COMMENTING
-[12:36:19.466] [bmv2] [I] [thread 24712] IMRON IS COMMENTING
-[12:36:35.612] [bmv2] [I] [thread 24712] IMRON IS COMMENTING
-[12:37:08.618] [bmv2] [I] [thread 24712] IMRON IS COMMENTING
-[12:38:14.672] [bmv2] [I] [thread 24712] IMRON IS COMMENTING
-[12:38:15.714] [bmv2] [I] [thread 24712] IMRON IS COMMENTING
-[12:38:17.766] [bmv2] [I] [thread 24712] IMRON IS COMMENTING
-open: No such file or directory
-open: No such file or directory
-open: No such file or directory
-open: No such file or directory
-open: No such file or directory
-open: No such file or directory
-open: No such file or directory
-open: No such file or directory
-open: No such file or directory
-open: No such file or directory
+[10:52:00.644] [bmv2] [I] [thread 9983] Starting Thrift server on port 9090
+[10:52:00.684] [bmv2] [I] [thread 9983] Thrift server was started
+[10:52:00.688] [bmv2] [I] [thread 10001] flow id of current flow is 2
+[10:52:00.688] [bmv2] [I] [thread 10001] flow id of current flow is 2
+[10:52:00.688] [bmv2] [I] [thread 10001] flow id of current flow is 2
+[10:52:00.688] [bmv2] [I] [thread 10001] flow id of current flow is 2
+[10:52:00.688] [bmv2] [I] [thread 10001] flow id of current flow is 2
+[10:52:00.690] [bmv2] [I] [thread 10001] flow id of current flow is 2
+[10:52:00.693] [bmv2] [I] [thread 10001] flow id of current flow is 2
+[10:52:00.784] [bmv2] [I] [thread 10001] flow id of current flow is 2
+[10:52:00.784] [bmv2] [I] [thread 10001] flow id of current flow is 2
+[10:52:01.585] [bmv2] [T] [thread 10063] bm_get_config
+[10:52:01.588] [bmv2] [T] [thread 10063] bm_table_add_entry
+[10:52:01.588] [bmv2] [T] [thread 10063] bm_table_add_entry
+[10:52:01.589] [bmv2] [T] [thread 10063] bm_table_add_entry
+[10:52:19.543] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:19.544] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:20.584] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:20.585] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:21.585] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:21.587] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:22.587] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:22.590] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:23.589] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:23.591] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:24.591] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:24.592] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:25.632] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:25.634] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:26.633] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:26.634] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:27.635] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:27.636] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:28.639] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:28.640] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:29.640] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:29.641] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:30.642] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:30.643] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:31.682] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:31.683] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:32.684] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:32.685] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:33.687] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:33.688] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:34.690] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:34.691] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:35.692] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:35.693] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:36.732] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:36.733] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:37.735] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:37.735] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:38.737] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:38.737] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:39.739] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:39.740] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:40.742] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:40.744] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:41.782] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:41.784] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:42.784] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:42.785] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:43.786] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:43.786] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:44.787] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:44.788] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:45.790] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:45.791] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:46.793] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:46.831] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:47.832] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:47.833] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:48.834] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:48.835] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:49.837] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:49.837] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:50.840] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:50.841] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:51.843] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:51.881] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:52.882] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:52.883] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:53.883] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:53.884] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:54.886] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:54.886] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:55.888] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:55.889] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:56.890] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:56.891] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:52:57.892] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:52:57.893] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:53:07.139] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:53:07.140] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:53:07.182] [bmv2] [I] [thread 10001] flow id of current flow is 4
+[10:53:07.183] [bmv2] [I] [thread 10001] flow id of current flow is 2
+[10:53:07.188] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:53:07.188] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:53:07.191] [bmv2] [I] [thread 10001] flow id of current flow is 5
+[10:53:07.192] [bmv2] [I] [thread 10001] flow id of current flow is 8
+[10:53:07.237] [bmv2] [I] [thread 10001] flow id of current flow is 2
+[10:53:07.238] [bmv2] [I] [thread 10001] flow id of current flow is 4
+[10:53:07.242] [bmv2] [I] [thread 10001] flow id of current flow is 8
+[10:53:07.243] [bmv2] [I] [thread 10001] flow id of current flow is 5
+[10:56:56.783] [bmv2] [T] [thread 11236] bm_get_config
+[10:56:56.784] [bmv2] [T] [thread 11236] bm_mt_get_entries
+[10:56:56.786] [bmv2] [T] [thread 11237] mirroring_sesssion_add
+[10:57:02.238] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:57:02.239] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:57:48.688] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:57:48.688] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:57:49.436] [bmv2] [T] [thread 11519] bm_get_config
+[10:57:49.438] [bmv2] [T] [thread 11519] bm_mt_get_entries
+[10:57:49.440] [bmv2] [T] [thread 11520] mirroring_sesssion_add
+[10:57:56.038] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:57:56.038] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:58:18.490] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:58:18.529] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:58:19.389] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:58:19.428] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:58:20.283] [bmv2] [T] [thread 11804] bm_get_config
+[10:58:20.286] [bmv2] [T] [thread 11804] bm_mt_get_entries
+[10:58:20.290] [bmv2] [T] [thread 11805] mirroring_sesssion_add
+[10:58:20.389] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:58:20.389] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:58:21.240] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:58:21.280] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:58:34.640] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:58:34.679] [bmv2] [I] [thread 10001] flow id of current flow is 0
+[10:58:35.590] [bmv2] [I] [thread 10001] flow id of current flow is 3
+[10:58:35.591] [bmv2] [I] [thread 10001] flow id of current flow is 0

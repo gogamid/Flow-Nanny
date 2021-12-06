@@ -23,7 +23,7 @@ class L2Controller(object):
         self.init()
 
     def init(self):
-        self.controller.reset_state()
+        # self.controller.reset_state()
         self.add_mirror()
 
     def add_mirror(self):
@@ -31,11 +31,8 @@ class L2Controller(object):
             self.controller.mirroring_add(99, self.cpu_port)
 
     def recv_msg_cpu(self, pkt):
-        # packet = Packet(str(pkt))
-        # ethernet_frame = Ether(str(packet))
-        # # ip_packet = ethernet_frame.payload
-        # # cpu_header = CpuHeader(str(ip_packet.payload))
-        print("FlowId is here: " + str(raw(pkt)))
+        cpu_header = CpuHeader(raw(pkt))
+        print("FlowId is here: " + str(cpu_header.flowid))
 
     def run_cpu_port_loop(self):
         cpu_port_intf = str(self.topo.get_cpu_port_intf(self.sw_name).replace("eth0", "eth1"))
@@ -48,9 +45,15 @@ if __name__ == "__main__":
 
 #Problem 1 
 #Ping fails when used with controller
+#-reset state should be commented
 
 #Problem 2
-#extract Ip ethernet cpu header separetaly 
+#parse Ip ethernet cpu header separetaly
+#parse with raw
 
 #Problem 3
 #I wanted to fill out AZD, but there is no AZD for November. Copy paste of other months are not possible
+#-contact secretary 
+
+# Next time
+# drop rate of 10 calculation in controller
