@@ -21,6 +21,8 @@ class L2Controller(object):
         self.cpu_port =  self.topo.get_cpu_port_index(self.sw_name)
         self.controller = SimpleSwitchThriftAPI(self.thrift_port)
         self.init()
+        self.flows = []
+        
 
     def init(self):
         self.add_mirror()
@@ -33,11 +35,14 @@ class L2Controller(object):
         cpu_header = CpuHeader(raw(pkt))
         print("This flow is heavy hitter: " + str(cpu_header.flowid))
         print("It had traffic " + str(cpu_header.flowBytes) + "/" + str(cpu_header.portBytes) + " of port traffic")
-        self.controller.register_write("MyIngress.dropRates", str(cpu_header.flowid), 90)
-        self.controller.register_write("MyIngress.isHeavyHitter", str(cpu_header.flowid), 1)
-        for x in range(10):
-            print(str(self.controller.register_read("MyIngress.dropRates", x)) + " ")
-        print("\n")
+        self.flows.append(str(cpu_header.flowid))
+        #only first heavy hitter is dropped
+        if self.flows[0] == str(cpu_header.flowid): 
+            self.controller.register_write("MyIngress.dropRates", str(cpu_header.flowid), 90)
+            self.controller.register_write("MyIngress.isHeavyHitter", str(cpu_header.flowid), 1)
+            for x in range(10):
+                print(str(self.controller.register_read("MyIngress.dropRates", x)) + " "),
+           
 
     def run_cpu_port_loop(self):
         cpu_port_intf = str(self.topo.get_cpu_port_intf(self.sw_name).replace("eth0", "eth1"))
@@ -64,15 +69,17 @@ if __name__ == "__main__":
 # Next time
 # drop rate of 10 calculation in controller
 
-#13.12.2021 Meeting 
+#13.12.2021 Meeting https://github.com/gogamid/P4-Tutorial-and-my-projects/tree/main/exercises/simple_throttle_new
 #Overall progress: Dropping works this time properly. Example: All links are bandwidth limited to 1 Mbit/s. When one flow is causing more than 50% of previous portBytes, then if i set drop rate of 90%. Flow gets dropped from 1Mbit/s to 100kbit/s. 
 
 #Problem 0 
 #two flows sharing one link of 1Mb/s, which is about 500kb/s per each. When I drop one flow lets say 10%. It doesnt affect its performance. Because 10% drop means drop from 1Mb/s of potential bandwidth. I can see the effect when I drop more than 50%. In the example I dropped 90% to see the effect of dropping from potential bandwidth of 1Mb/s to 100kb/s. But in reality, it dropped from 500kbit/s to 100kbit/s. Is that normal behaviour? 
+#- makes sense, normal behaviour 
 
 
 #Problem 1
 #Controller is getting port bytes as 0?Maybe port limit or time of link level window or flow level window should be changed? 
 
 #Problem 2
-#Drop rate is working, but usually both flows are dropped. How to test better that one flow takes advantage of other flow dropping? In detail, when flow can be not heavy hitter again? what is the requirement for that? Lets say 
+#Drop rate is working, but usually both flows are dropped. How to test better that one flow takes advantage of other flow dropping? In detail, when flow can be not heavy hitter again? what is the requirement for that? 
+#- only one flow should be dropped. First only drop
