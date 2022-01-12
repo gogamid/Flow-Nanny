@@ -83,3 +83,9 @@ if __name__ == "__main__":
 #Problem 2
 #Drop rate is working, but usually both flows are dropped. How to test better that one flow takes advantage of other flow dropping? In detail, when flow can be not heavy hitter again? what is the requirement for that? 
 #- only one flow should be dropped. First only drop
+#----------------------------------------------------------------------------
+#Meetig 12.01.2022
+#Next time: 
+#change of drop rate during run time. With command line and etc
+# or dynamicly depending how many bytes it passed limit
+#next time at Wednesday 13:00
