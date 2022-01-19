@@ -6,7 +6,6 @@ from scapy.all import Ether, sniff, Packet, BitField, raw
 import ipaddress
 import sys
 
-
 class CpuHeader(Packet):
     name = 'CpuPacket'
     fields_desc = [BitField('flowid',0,32), BitField('flowBytes',0,32), BitField('portBytes',0,32)]
@@ -21,7 +20,13 @@ class L2Controller(object):
         self.cpu_port =  self.topo.get_cpu_port_index(self.sw_name)
         self.controller = SimpleSwitchThriftAPI(self.thrift_port)
         self.init()
-        self.flows = []
+        self.heavyHitterFlowIds = []
+        self.defaultDropRate = 90
+        self.isNotSetBefore = True
+    
+    def printDropRates(self):
+        for x in range(10):
+            print(str(self.controller.register_read("MyIngress.dropRates", x))),
         
 
     def init(self):
@@ -34,15 +39,18 @@ class L2Controller(object):
     def recv_msg_cpu(self, pkt):
         cpu_header = CpuHeader(raw(pkt))
         print("This flow is heavy hitter: " + str(cpu_header.flowid))
-        print("It had traffic " + str(cpu_header.flowBytes) + "/" + str(cpu_header.portBytes) + " of port traffic")
-        self.flows.append(str(cpu_header.flowid))
-        #only first heavy hitter is dropped
-        if self.flows[0] == str(cpu_header.flowid): 
-            self.controller.register_write("MyIngress.dropRates", str(cpu_header.flowid), 90)
+        self.heavyHitterFlowIds.append(str(cpu_header.flowid))
+        #only first heavy hitter is dropped to make it testable. In the future there is possibility to extend. 
+        if self.heavyHitterFlowIds[0] == str(cpu_header.flowid) and self.isNotSetBefore:
+            self.controller.register_write("MyIngress.dropRates", str(cpu_header.flowid), self.defaultDropRate)
             self.controller.register_write("MyIngress.isHeavyHitter", str(cpu_header.flowid), 1)
-            for x in range(10):
-                print(str(self.controller.register_read("MyIngress.dropRates", x)) + " "),
-           
+            self.isNotSetBefore = False
+        self.printDropRates()
+
+    def setDropRate(self, flow_id, drop_rate):
+        self.controller.register_write("MyIngress.dropRates", flow_id, int(drop_rate))
+        self.printDropRates()
+
 
     def run_cpu_port_loop(self):
         cpu_port_intf = str(self.topo.get_cpu_port_intf(self.sw_name).replace("eth0", "eth1"))
@@ -50,7 +58,20 @@ class L2Controller(object):
 
 
 if __name__ == "__main__":
-    controller = L2Controller("s1").run_cpu_port_loop()
+    if len(sys.argv ) < 1:
+        print("command: sudo python controller.py run or sudo python controller.py set [flowid][drop rate]")
+    else:
+        controller = L2Controller("s1")
+        action = sys.argv[1] 
+        if action == "run":
+            controller.run_cpu_port_loop()
+        elif action == "set":
+            if len(sys.argv ) < 3:
+                print("command: sudo python controller.py set [flowid] [dropRate]")
+            else:
+                fid = sys.argv[2]
+                dr = sys.argv[3]
+                controller.setDropRate(fid, dr)
 
 #06.12.2021 Meeting Questions 
 
@@ -73,7 +94,7 @@ if __name__ == "__main__":
 #Overall progress: Dropping works this time properly. Example: All links are bandwidth limited to 1 Mbit/s. When one flow is causing more than 50% of previous portBytes, then if i set drop rate of 90%. Flow gets dropped from 1Mbit/s to 100kbit/s. 
 
 #Problem 0 
-#two flows sharing one link of 1Mb/s, which is about 500kb/s per each. When I drop one flow lets say 10%. It doesnt affect its performance. Because 10% drop means drop from 1Mb/s of potential bandwidth. I can see the effect when I drop more than 50%. In the example I dropped 90% to see the effect of dropping from potential bandwidth of 1Mb/s to 100kb/s. But in reality, it dropped from 500kbit/s to 100kbit/s. Is that normal behaviour? 
+#two heavyHitterFlowI sharing one link of 1Mb/s, which is about 500kb/s per each. When I drop one flow lets say 10%. It doesnt affect its performance. Because 10% drop means drop from 1Mb/s of potential bandwidth. I can see the effect when I drop more than 50%. In the example I dropped 90% to see the effect of dropping from potential bandwidth of 1Mb/s to 100kb/s. But in reality, it dropped from 500kbit/s to 100kbit/s. Is that normal behaviour? 
 #- makes sense, normal behaviour 
 
 
@@ -81,7 +102,7 @@ if __name__ == "__main__":
 #Controller is getting port bytes as 0?Maybe port limit or time of link level window or flow level window should be changed? 
 
 #Problem 2
-#Drop rate is working, but usually both flows are dropped. How to test better that one flow takes advantage of other flow dropping? In detail, when flow can be not heavy hitter again? what is the requirement for that? 
+#Drop rate is working, but usually both heavyHitterFlowI are dropped. How to test better that one flow takes advantage of other flow dropping? In detail, when flow can be not heavy hitter again? what is the requirement for that? 
 #- only one flow should be dropped. First only drop
 #----------------------------------------------------------------------------
 #Meetig 12.01.2022
@@ -89,3 +110,10 @@ if __name__ == "__main__":
 #change of drop rate during run time. With command line and etc
 # or dynamicly depending how many bytes it passed limit
 #next time at Wednesday 13:00
+
+#Meetig 19.01.2022
+#Next time:
+#gradual incrase of drop rate 10 20 30 40 50 
+#healing process looks for the flows which are dropped and "behaving well"(less trafic), controller should gradually drop the droprate. 
+#binary approach isHeavyHitter then incrase dropRate +10
+#reset all droprates after 20 sec
