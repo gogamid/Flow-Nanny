@@ -5,6 +5,8 @@ from p4utils.utils.sswitch_thrift_API import SimpleSwitchThriftAPI
 from scapy.all import Ether, sniff, Packet, BitField, raw
 import ipaddress
 import sys
+import sched, time
+s = sched.scheduler(time.time, time.sleep)
 
 class CpuHeader(Packet):
     name = 'CpuPacket'
@@ -21,8 +23,15 @@ class L2Controller(object):
         self.controller = SimpleSwitchThriftAPI(self.thrift_port)
         self.init()
         self.heavyHitterFlowIds = []
-        self.defaultDropRate = 90
+        self.defaultDropRate = 10
         self.isNotSetBefore = True
+
+    def do_something(self, sc): 
+        print("***************Resetting drop rates**************\n")
+        for item in range(10):
+            self.controller.register_write("MyIngress.dropRates", str(item), 0)
+            # self.controller.register_write("MyIngress.isHeavyHitter", str(item), 0)
+        s.enter(40, 1, self.do_something, (sc, ))
     
     def printDropRates(self):
         for x in range(10):
@@ -41,10 +50,10 @@ class L2Controller(object):
         print("This flow is heavy hitter: " + str(cpu_header.flowid))
         self.heavyHitterFlowIds.append(str(cpu_header.flowid))
         #only first heavy hitter is dropped to make it testable. In the future there is possibility to extend. 
-        if self.heavyHitterFlowIds[0] == str(cpu_header.flowid) and self.isNotSetBefore:
+        if self.heavyHitterFlowIds[0] == str(cpu_header.flowid):
+            self.defaultDropRate+=10
             self.controller.register_write("MyIngress.dropRates", str(cpu_header.flowid), self.defaultDropRate)
             self.controller.register_write("MyIngress.isHeavyHitter", str(cpu_header.flowid), 1)
-            self.isNotSetBefore = False
         self.printDropRates()
 
     def setDropRate(self, flow_id, drop_rate):
@@ -53,8 +62,11 @@ class L2Controller(object):
 
 
     def run_cpu_port_loop(self):
+        s.enter(40, 1, self.do_something, (s, ))
+        s.run()
         cpu_port_intf = str(self.topo.get_cpu_port_intf(self.sw_name).replace("eth0", "eth1"))
         sniff(iface=cpu_port_intf, prn=self.recv_msg_cpu)
+        
 
 
 if __name__ == "__main__":
@@ -117,3 +129,5 @@ if __name__ == "__main__":
 #healing process looks for the flows which are dropped and "behaving well"(less trafic), controller should gradually drop the droprate. 
 #binary approach isHeavyHitter then incrase dropRate +10
 #reset all droprates after 20 sec
+
+#Meetig 28.01.2022 
