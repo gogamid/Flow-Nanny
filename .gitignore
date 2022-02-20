@@ -31,3 +31,14 @@ logs/
 
 # IntelliJ / PyCharm
 .idea/
+
+.log
+log/
+log
+
+.p4i
+
+basic.json
+topology.json
+
+.pcap
