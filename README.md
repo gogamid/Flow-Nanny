@@ -1,4 +1,6 @@
-My Project
-* [Simple Throttle with old p4learning environment](./exercises/simple_throttle)
-* [Simple Throttle with new p4learning environnment](./exercises/simple_throttle_new)
+# Flow Nanny
+
+Data Plane: [P4 Code](src/basic.p4)
+
+Control Plane: [Python Code](src/controller.py)
 
