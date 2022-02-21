@@ -9,7 +9,6 @@ import sched, time
 s = sched.scheduler(time.time, time.sleep)
 
 class CpuHeader(Packet):
-    name = 'CpuPacket'
     fields_desc = [BitField('flowid',0,32), BitField('flowBytes',0,32), BitField('portBytes',0,32)]
 
 
@@ -31,7 +30,7 @@ class L2Controller(object):
         for item in range(10):
             self.controller.register_write("MyIngress.dropRates", str(item), 0)
             # self.controller.register_write("MyIngress.isHeavyHitter", str(item), 0)
-        s.enter(40, 1, self.resetDropRatesAfterEachInterval, (sc, ))
+        s.enter(400, 1, self.resetDropRatesAfterEachInterval, (sc, ))
     
     def printDropRates(self):
         for x in range(10):

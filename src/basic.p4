@@ -6,7 +6,7 @@
 const bit<8>  TYPE_TCP  = 6;
 const bit<8>  TYPE_UDP  = 17;
 const bit<16> TYPE_IPV4 = 0x800;
-const bit<32> maxFlows=10; //number of flows supported for now
+const bit<32> maxFlows=6; //number of flows supported for now
 
 const bit<32> portBasedByteLimit=500000; //limit till 5 Mbit per 5 seconds
 const bit<48> link_level_window=5000000 ; //link level window is 5 seconds
@@ -148,29 +148,29 @@ control MyIngress(inout headers hdr,
 
     //for egress 
     bit<1> _isSeenPortEgress; //local help variable which is used with register "isSeenPortEgress"
-    register<bit<1>>(4) isSeenPortEgress; //in order to identify first packet in the port(0 first Packet, 1 not)
+    register<bit<1>>(5) isSeenPortEgress; //in order to identify first packet in the port(0 first Packet, 1 not)
 
     bit<48> _startTimePortEgress;
-    register<bit<48>>(4) startTimePortEgress; //start time of port with index of port
+    register<bit<48>>(5) startTimePortEgress; //start time of port with index of port
 
     bit<32> link_load_egress;
-    register<bit<32>>(4) linkLoadEgress; //current port based counter
+    register<bit<32>>(5) linkLoadEgress; //current port based counter
 
     bit<32> prevPortBasedBytesEgress; //local help variable which is used with register "bytesReceivedPort"
-    register<bit<32>>(4) bytesSentPort; //number of bytes received per port
+    register<bit<32>>(5) bytesSentPort; //number of bytes received per port
     
     //for link level
     bit<1> _isSeenPort; //local help variable which is used with register "isSeenPort"
-    register<bit<1>>(4) isSeenPort; //in order to identify first packet in the port(0 first Packet, 1 not)
+    register<bit<1>>(5) isSeenPort; //in order to identify first packet in the port(0 first Packet, 1 not)
 
     bit<32> prevPortBasedBytes; //local help variable which is used with register "bytesReceivedPort"
-    register<bit<32>>(4) bytesReceivedPort; //number of bytes received per port
+    register<bit<32>>(5) bytesReceivedPort; //number of bytes received per port
 
     bit<48> _startTimePort;
-    register<bit<48>>(4) startTimePort; //start time of port with index of port
+    register<bit<48>>(5) startTimePort; //start time of port with index of port
 
     bit<32> link_load;
-    register<bit<32>>(4) linkLoad; //current port based counter
+    register<bit<32>>(5) linkLoad; //current port based counter
 
     //for flow level
     bit<1> _isSeen; //local help variable which is used with register "isSeen"
@@ -216,6 +216,7 @@ control MyIngress(inout headers hdr,
         //get flow id
         hash(flowId, HashAlgorithm.crc32, 32w0, {hdr.ipv4.srcAddr,hdr.ipv4.dstAddr, meta.l4_ports.src_port, meta.l4_ports.dst_port, hdr.ipv4.protocol}, maxFlows);
 
+         
         /////////INGRESS////////////
         current_iPort = (bit<32>)standard_metadata.ingress_port;
     
@@ -281,6 +282,7 @@ control MyIngress(inout headers hdr,
         /*Is it a first packet of flow, then note time of ingress. */ 
         isSeen.read(_isSeen, flowId);
         if (_isSeen == 0) {
+            log_msg("FlowID {} of new flow", {flowId});
             startTime.write(flowId, standard_metadata.ingress_global_timestamp);
             isSeen.write(flowId,1);
         }    
