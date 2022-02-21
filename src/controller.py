@@ -27,13 +27,13 @@ class L2Controller(object):
 
     def resetDropRatesAfterEachInterval(self, sc): 
         print("***************Resetting drop rates**************\n")
-        for item in range(10):
+        for item in range(6):
             self.controller.register_write("MyIngress.dropRates", str(item), 0)
             # self.controller.register_write("MyIngress.isHeavyHitter", str(item), 0)
-        s.enter(400, 1, self.resetDropRatesAfterEachInterval, (sc, ))
+        s.enter(40, 1, self.resetDropRatesAfterEachInterval, (sc, ))
     
     def printDropRates(self):
-        for x in range(10):
+        for x in range(6):
             print(str(self.controller.register_read("MyIngress.dropRates", x))),
         
 
