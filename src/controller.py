@@ -61,8 +61,8 @@ class L2Controller(object):
 
 
     def run_cpu_port_loop(self):
-        s.enter(40, 1, self.resetDropRatesAfterEachInterval, (s, ))
-        s.run()
+        # s.enter(40, 1, self.resetDropRatesAfterEachInterval, (s, ))
+        # s.run()
         cpu_port_intf = str(self.topo.get_cpu_port_intf(self.sw_name).replace("eth0", "eth1"))
         sniff(iface=cpu_port_intf, prn=self.recv_msg_cpu)
         
